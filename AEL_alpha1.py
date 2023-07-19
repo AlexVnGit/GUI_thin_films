@@ -10,7 +10,12 @@ from PIL import ImageTk, Image
 from tkinter.messagebox import showinfo
 from matplotlib.pylab import *
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
+from matplotlib.backend_bases import key_press_handler
+from matplotlib.figure import Figure
+#import ctypes
+ 
+#ctypes.windll.shcore.SetProcessDpiAwareness(1)
 
 #############################################
 # Esta funcao recebe os dados dos ficheiros externos
@@ -25,16 +30,20 @@ def Plot(File, Name):
         for i in range(12, len(File) - 1):
             Counts.append(float(File[i]))
             Channel.append(i-11)
-    
-    fig, ax = plt.subplots()
+
+    fig = Figure()
+    ax = fig.add_subplot(111)
     ax.plot(Channel, Counts, 'D', label = "Calibration Run")
     legend = ax.legend(loc = "upper right", ncol = 2, shadow = False,fancybox = False, framealpha = 0.0, fontsize = 15)
     legend.get_frame().set_facecolor('#DAEBF2')
     tick_params(axis = 'both', which = 'major', labelsize = 15)
     xlabel('Channel', fontsize = 15)
     ylabel('Counts', fontsize = 15)
-    bar1 = FigureCanvasTkAgg(fig, GraphicFrame)
-    bar1.get_tk_widget().grid(sticky = 'nw')
+    canvas = FigureCanvasTkAgg(fig, GraphicFrame)
+    canvas.draw()
+    canvas.get_tk_widget().grid(sticky = 'nw')
+
+
 
             
 
@@ -101,20 +110,24 @@ main.title("AEL Thin Film Characterization")
 ######################## FRAMES #################################
 
     #Frame dos ícones ferramentas
-ToolbarFrame = tk.LabelFrame(main, borderwidth = 5, relief = 'ridge', width = 500, height = 45) 
+ToolbarFrame = tk.LabelFrame(main, borderwidth = 5, relief = 'ridge') 
 ToolbarFrame.grid(column = 0, row = 0, sticky = "nw")
+#ToolbarFrame.grid_propagate(False)
 
     #Frame das Tabs
-TabFrame = tk.LabelFrame(main, borderwidth = 5, relief = 'ridge', width = 755, height = 41)
-TabFrame.grid(columnspan = 2, row = 0, sticky = "ne")
+TabFrame = tk.LabelFrame(main, borderwidth = 5, relief = 'ridge')
+TabFrame.grid(column = 1, row = 0, sticky = tk.E)
+#TabFrame.grid_propagate(False)
 
     #Frame para o Gráfico
-GraphicFrame = tk.Frame(main, borderwidth = 5, relief = 'ridge', width = 1000, height = 600)
-GraphicFrame.grid(column = 0, row = 1, sticky = "w")
+GraphicFrame = tk.Frame(main, borderwidth = 5, relief = 'ridge')
+GraphicFrame.grid(column = 0, row = 1, sticky = "sw")
+#GraphicFrame.grid_propagate(False)
 
     #Frame para os Dados
-DataFrame = tk.LabelFrame(main, borderwidth = 5, relief = 'ridge', width = 280, height = 600)
+DataFrame = tk.LabelFrame(main, borderwidth = 5, relief = 'ridge')
 DataFrame.grid(column = 1, row = 1, sticky = "se")
+#DataFrame.grid_propagate(False)
 
 #################### Tabs ########################
 
