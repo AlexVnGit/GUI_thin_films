@@ -6,16 +6,22 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog as fd
-from PIL import ImageTk, Image
-from tkinter.messagebox import showinfo
+#from PIL import ImageTk, Image
+#from tkinter.messagebox import showinfo
 from matplotlib.pylab import *
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
-from matplotlib.backend_bases import key_press_handler
+#from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
-#import ctypes
+import ctypes
  
-#ctypes.windll.shcore.SetProcessDpiAwareness(1)
+ctypes.windll.shcore.SetProcessDpiAwareness(1)
+
+
+def on_key_event(event, canvas, toolbar):
+    matplotlib.backend_bases.key_press_handler(event, canvas, toolbar)
 
 #############################################
 # Esta funcao recebe os dados dos ficheiros externos
@@ -25,15 +31,20 @@ def Plot(File, Name):
     Channel = []
     Counts = []
 
+    Data = open("Data.txt", "w")
+
     if Name[-4:] == ".mca":
 
         for i in range(12, len(File) - 1):
             Counts.append(float(File[i]))
             Channel.append(i-11)
+            Data.write(str(Counts) + "\n")
 
-    fig = Figure()
+    Data.close()
+
+    fig = Figure(figsize =(9, 7) )
     ax = fig.add_subplot(111)
-    ax.plot(Channel, Counts, 'D', label = "Calibration Run")
+    ax.plot(Channel, Counts, '.', label = "Calibration Run")
     legend = ax.legend(loc = "upper right", ncol = 2, shadow = False,fancybox = False, framealpha = 0.0, fontsize = 15)
     legend.get_frame().set_facecolor('#DAEBF2')
     tick_params(axis = 'both', which = 'major', labelsize = 15)
@@ -41,13 +52,12 @@ def Plot(File, Name):
     ylabel('Counts', fontsize = 15)
     canvas = FigureCanvasTkAgg(fig, GraphicFrame)
     canvas.draw()
-    canvas.get_tk_widget().grid(sticky = 'nw')
-
-
-
-            
-
-
+    canvas.get_tk_widget().pack(expand= True)
+    toolbar = NavigationToolbar2Tk(canvas, GraphicFrame)    
+    canvas.mpl_connect('key_press_event', lambda event: on_key_event(event, canvas, toolbar))
+    toolbar.update()
+    main.bind('<Control-w>', lambda event: main.destroy())
+  
 
 ##############################################################################
 #Esta função irá ler o ficheiro input. Em principio, apos receber o ficheiro
@@ -55,37 +65,75 @@ def Plot(File, Name):
 ##############################################################################
 def FileReader(): 
 
-    domain = (('text files', '*.mca *.txt *.dat'), ('all files', '*.*'))
-    filename = fd.askopenfilename(title = 'Open a file', initialdir = '.', filetypes = domain)    
-    #showinfo(title = 'Selected File', message = filename)
-    print(filename)
+    domain = (('text files', '*.mca'), ('all files', '*.*'))
+    filename = fd.askopenfilename(title = 'Open a file', initialdir = '.', filetypes = domain)
+    ###########INSERIR JANELA QUE NAO PERMITE FICHEIROS QUE NAO SEJAM MCA 
     OpenFile = open(filename, 'r')
     file = OpenFile.read()
     OpenFile.close()
     file = file.splitlines()
     Plot(file, filename)
 
+##################################################################
+#Primeiro Algoritmo!
+# Muito WIP
+##################################################################
+def NRMethod(Peaks):
+
+    Text = open("Data.txt", "r")
+    Counts = Text.read()
+    Text.close()
+    Counts = Counts.splitlines()
+    Temp = []
+
+    for i in range(len(Counts)):
+        Temp[len(Counts)-i] = Counts[i]
+
+    i = 0
+    Counts.clear()
+    Aux = [][Peaks]
+    j = 0
+
+    for i in range(len(Temp)):
+        if Temp[i] > 50:
+            Aux[i][j] = Temp[i]
+            Counts[i] = i
+        j = j + 1
+
+    j = 0
+    i = 0
+    for j in range(Peaks):
+        for i in range(len(Aux[j])):
+            print(max(Aux[i][j]))
+
+def Method(self):
+    Type = Menu.get()
+    tk.Label(DataFrame, text = Type + "\n", bg = 'white').grid(row = 1, columnspan = 2)
 
 
 ###########################################################################
 #Funcao em desenvolvimento... Ira ser a funçao que decide qual o algoritmo
 #a ser utilizado na analise dos dados WIP
 ###########################################################################
-def Analysis():
+def Analysis():       
 
-    Type = Menu.get()
+    Method = Menu.get()
 
-    Window = tk.Tk()
-    if Type == 'Select Analysis Method':
-       myLabel = tk.Label(Window, text = "No Analysis Method Selected")
-       myLabel.pack()
-       ReturnButton = tk.Button(Window, text = 'Return', command = Window.destroy)
-       ReturnButton.pack()  
+
+    if PeaksInput.get() != '0':
+
+        if Method == 'Noise Remover':
+            NRMethod(int(PeaksInput.get()))
+
     else:
-       myLabel = tk.Label(Window, text = "Analysis Method Selected: \n" + Type)
-       myLabel.pack()
-       ReturnButton = tk.Button(Window, text = 'Return', command = Window.destroy)
-       ReturnButton.pack()
+        Warning = tk.Tk()
+        tk.Label(Warning, text = 'No Information of the Number of Peaks was Submited \n').grid()
+        tk.Label(Warning, text = 'Please Insert the Number of Peaks\n').grid()
+        tk.Button(Warning, text = 'Return', command = Warning.destroy).grid()
+
+    #for i in range(int(PeaksInput.get())):
+        #tk.Label(DataFrame, text = 'Peak ' + str(i + 1) + ':').grid(row = i + 3, column = 0)
+        #tk.Label(DataFrame, relief = 'sunken', text = i + 4.5, borderwidth = 2, bg = 'white').grid(row = i + 3, column = 1)
 
 
 ###############################################################
@@ -98,7 +146,6 @@ def Tabs():
     Tab.add(test2, text = 'Trial 1')
     
 
-
 ########
 #Toda esta secçao define as estruturas presentes na janela
 #A maior parte dos widgets têm comentarios para explicar o contexto
@@ -106,28 +153,33 @@ def Tabs():
 main = tk.Tk() #Janela Principal
 main.state('zoomed')
 main.title("AEL Thin Film Characterization")
+main.columnconfigure(0, weight = 3)
+main.columnconfigure(1, weight = 0)
+main.columnconfigure(2, weight = 2)
 
 ######################## FRAMES #################################
+
 
     #Frame dos ícones ferramentas
 ToolbarFrame = tk.LabelFrame(main, borderwidth = 5, relief = 'ridge') 
 ToolbarFrame.grid(column = 0, row = 0, sticky = "nw")
-#ToolbarFrame.grid_propagate(False)
 
     #Frame das Tabs
 TabFrame = tk.LabelFrame(main, borderwidth = 5, relief = 'ridge')
-TabFrame.grid(column = 1, row = 0, sticky = tk.E)
-#TabFrame.grid_propagate(False)
+TabFrame.grid(column = 2, row = 0, sticky = 'ne')
 
     #Frame para o Gráfico
 GraphicFrame = tk.Frame(main, borderwidth = 5, relief = 'ridge')
-GraphicFrame.grid(column = 0, row = 1, sticky = "sw")
-#GraphicFrame.grid_propagate(False)
+GraphicFrame.grid(column = 0, row = 1, sticky = "nw", pady = 5, columnspan = 2)
+
 
     #Frame para os Dados
 DataFrame = tk.LabelFrame(main, borderwidth = 5, relief = 'ridge')
-DataFrame.grid(column = 1, row = 1, sticky = "se")
-#DataFrame.grid_propagate(False)
+DataFrame.grid(column = 2, row = 1, sticky = "ne")
+DataFrame.columnconfigure(0, weight = 1)
+DataFrame.columnconfigure(1, weight = 1)
+DataFrame.grid_propagate(True)
+
 
 #################### Tabs ########################
 
@@ -136,6 +188,17 @@ Tab.grid(sticky = "w")
 CalibFrame = tk.Frame(TabFrame, borderwidth = 5, relief ='sunken', bg = 'blue', height = 1 )
 CalibFrame.grid()
 Tab.add(CalibFrame, text = 'Calib Trial')
+
+#################### ENTRIES ###########################
+
+tk.Label(DataFrame, text = 'Analysis Method Selected: \n').grid(row = 0, columnspan = 2)
+
+tk.Label(DataFrame, text = 'Please Input Number of Peaks: \n').grid(row = 2, columnspan = 2)
+PeaksInput = tk.StringVar()
+PeaksInput.set('0')
+Entry = tk.Entry(DataFrame, textvariable = PeaksInput, relief = 'sunken',
+                  borderwidth = 2, bg = 'white').grid(row = 3, columnspan= 2)
+
 
 ##################### BUTOES #######################
     
@@ -147,23 +210,20 @@ tk.Button(ToolbarFrame, text = "Insert Files" , command = FileReader, height = 1
 Menu = tk.StringVar()
 Menu.set("Select Analysis Method")
 Options = ["Peak-Input", "Noise Remover", "Manual Selection"]
-Tools = tk.OptionMenu(ToolbarFrame, Menu, *Options)
-Tools.grid(column = 1, row = 0)
+tk.OptionMenu(ToolbarFrame, Menu, *Options, command = Method).grid(column = 1, row = 0)
     
     #Botão de Começo da Análise
-tk.Button(ToolbarFrame, text = 'Run', command = Analysis, height = 1).grid(column = 2, row = 0)
+tk.Button(ToolbarFrame, text = 'Run', height = 1, command = Analysis).grid(column = 2, row = 0)
 
     #Botão de Download dos Dados
-Download = tk.Button(ToolbarFrame, text = 'Download', height = 1)
-Download.grid(column = 3, row = 0)
+tk.Button(ToolbarFrame, text = 'Download', height = 1).grid(column = 3, row = 0)
 
     #Botão de Separador Novo de Análise (Para os Filmes)
-ThinFilm = tk.Button(ToolbarFrame, text = 'New Trial', height = 1, command = Tabs)
-ThinFilm.grid(column = 4, row = 0)
+tk.Button(ToolbarFrame, text = 'New Trial', height = 1, command = Tabs).grid(column = 4, row = 0)
 
     #Botão de Voltar ao Menu Principal
-Escape = tk.Button(ToolbarFrame, text = 'Return to Main Menu', height = 1)
-Escape.grid(column = 5, row = 0)
+tk.Button(ToolbarFrame, text = 'Return to Main Menu', height = 1).grid(column = 5, row = 0)
+
 
 ##################### MAINLOOP ####################
 
