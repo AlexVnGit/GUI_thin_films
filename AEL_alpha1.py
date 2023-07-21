@@ -38,7 +38,7 @@ def Plot(File, Name):
         for i in range(12, len(File) - 1):
             Counts.append(float(File[i]))
             Channel.append(i-11)
-            Data.write(str(Counts) + "\n")
+            Data.write(str(Counts[i-12])+"\n")
 
     Data.close()
 
@@ -84,31 +84,32 @@ def NRMethod(Peaks):
     Counts = Text.read()
     Text.close()
     Counts = Counts.splitlines()
-    Temp = []
+    Counts.reverse()
+    Channel = []
 
     for i in range(len(Counts)):
-        Temp[len(Counts)-i] = Counts[i]
+        Counts[i] = float(Counts[i])
+        Channel.append(i+1)
 
+    Channel.reverse()
     i = 0
-    Counts.clear()
+    print(Peaks)
+
     Aux = [][Peaks]
-    j = 0
 
-    for i in range(len(Temp)):
-        if Temp[i] > 50:
-            Aux[i][j] = Temp[i]
-            Counts[i] = i
-        j = j + 1
+    for j in range(Peaks):
+        for i in range(len(Counts)):
+            if Counts[i] > 50:
+                Aux[j].append(Counts[i])
 
-    j = 0
-    i = 0
+
     for j in range(Peaks):
         for i in range(len(Aux[j])):
             print(max(Aux[i][j]))
 
 def Method(self):
     Type = Menu.get()
-    tk.Label(DataFrame, text = Type + "\n", bg = 'white').grid(row = 1, columnspan = 2)
+    tk.Label(master = DataFrame, text = Type + "\n", bg = 'white').grid(row = 1, columnspan = 2)
 
 
 ###########################################################################
@@ -118,12 +119,13 @@ def Method(self):
 def Analysis():       
 
     Method = Menu.get()
+    Peaks = int(PeaksInput.get())
 
 
-    if PeaksInput.get() != '0':
+    if Peaks != 0:
 
         if Method == 'Noise Remover':
-            NRMethod(int(PeaksInput.get()))
+            NRMethod(Peaks)
 
     else:
         Warning = tk.Tk()
