@@ -42,7 +42,7 @@ def Plot(File, Name):
 
     Data.close()
 
-    fig = Figure(figsize =(9, 7) )
+    fig = Figure(figsize =(6, 5) )
     ax = fig.add_subplot(111)
     ax.plot(Channel, Counts, '.', label = "Calibration Run")
     legend = ax.legend(loc = "upper right", ncol = 2, shadow = False,fancybox = False, framealpha = 0.0, fontsize = 15)
@@ -93,19 +93,55 @@ def NRMethod(Peaks):
 
     Channel.reverse()
     i = 0
-    print(Peaks)
+    
+    Threshold = 50
 
-    Aux = [][Peaks]
+    Aux = [[0]]*Peaks   #[ [], [], ..., [] ]
+    Temp = []
+    
+    for i in range(len(Counts)):
+        if Counts[i] > Threshold:
+            Temp.append(Counts[i])
+        if Counts[i] <= Threshold:
+            Temp.append(0)
+
+    Counts.clear()
+    j = 0
+    i = 0
+
+    for i in range(len(Temp)-1):
+        
+        if j == Peaks:
+                break
+        
+        elif Temp[i] == 0 and Temp[i+1] != 0:
+            print(Temp[i])
+            Aux[j].append(Temp[i+1])
+            #Counts.append(Channel[i])´
+
+        elif Temp[i] != 0 and Temp[i+1] != 0:
+            print(Temp[i])
+            Aux[j].append(Temp[i+1])
+
+        elif Temp[i] != 0 and Temp[i+1] == 0:
+            print(Temp[i])
+            j = j + 1
+            
+        elif Temp[i] == 0 and Temp[i+1] == 0:
+            print(Temp[i])
+            ()
+           
+    print(Aux)
+
+    j = 0
+
+    Channel.clear()
 
     for j in range(Peaks):
-        for i in range(len(Counts)):
-            if Counts[i] > 50:
-                Aux[j].append(Counts[i])
+        Channel.append(max(Aux[j]))
+        print(Channel[j])
 
 
-    for j in range(Peaks):
-        for i in range(len(Aux[j])):
-            print(max(Aux[i][j]))
 
 def Method(self):
     Type = Menu.get()
