@@ -93,10 +93,15 @@ def NRMethod(Peaks):
 
     Channel.reverse()
     i = 0
-    
     Threshold = 50
+    j = 0
 
-    Aux = [[0]]*Peaks   #[ [], [], ..., [] ]
+    ########## O ARRAY TEM QUE SER DEFINIDO ASSIM PARA 
+    # CADA LISTA DENTRO DA LISTA SEJA INDEPENDENTE
+    #EPLICACAO:
+    #https://www.geeksforgeeks.org/python-using-2d-arrays-lists-the-right-way/
+    Aux = [[0 for i in range(1)] for j in range (Peaks)]   #[ [], [], ..., [] ]
+
     Temp = []
     
     for i in range(len(Counts)):
@@ -115,24 +120,25 @@ def NRMethod(Peaks):
                 break
         
         elif Temp[i] == 0 and Temp[i+1] != 0:
-            print(Temp[i])
+            
             Aux[j].append(Temp[i+1])
-            #Counts.append(Channel[i])´
+            #Counts.append(Channel[i])
 
         elif Temp[i] != 0 and Temp[i+1] != 0:
-            print(Temp[i])
+
             Aux[j].append(Temp[i+1])
 
+
         elif Temp[i] != 0 and Temp[i+1] == 0:
-            print(Temp[i])
+
             j = j + 1
             
         elif Temp[i] == 0 and Temp[i+1] == 0:
-            print(Temp[i])
-            ()
-           
+            
+            ()    
+    
     print(Aux)
-
+           
     j = 0
 
     Channel.clear()
