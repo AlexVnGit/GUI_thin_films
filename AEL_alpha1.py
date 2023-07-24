@@ -15,17 +15,34 @@ matplotlib.use('Agg')
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 #from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
+
+########## Ajusta-se ao ecrã e foca os widgets ######
 import ctypes
- 
+
 ctypes.windll.shcore.SetProcessDpiAwareness(1)
 
+#####################################################
 
+##########################################################
+# Funcao para os botoes do MATPLOTLIB funcionarem no widget
+###########################################################
 def on_key_event(event, canvas, toolbar):
     matplotlib.backend_bases.key_press_handler(event, canvas, toolbar)
 
+###########################################################
+# Funcao para eliminar entries e labels dentro da frame
+###########################################################
+
+def ClearData():
+    for widget in ResultFrame.winfo_children():
+        widget.destroy()
+    ResultFrame.grid_remove()
+
 #############################################
 # Esta funcao recebe os dados dos ficheiros externos
-# e insere os graficos na frame grande do GUI. WIP
+# e insere os graficos na frame grande do GUI.
+# Ao mesmo tempo cria um txt para outras funções
+# acederem aos dados
 #############################################
 def Plot(File, Name):
     Channel = []
@@ -60,8 +77,7 @@ def Plot(File, Name):
   
 
 ##############################################################################
-#Esta função irá ler o ficheiro input. Em principio, apos receber o ficheiro
-#ira automaticamente exibir o grafico
+#Esta função irá ler o ficheiro input.
 ##############################################################################
 def FileReader(): 
 
@@ -74,43 +90,71 @@ def FileReader():
     file = file.splitlines()
     Plot(file, filename)
 
+def Regression(xvalues):
+
+    avgx = average(xvalues)
+    OpenFile = open("226_Ra.txt")
+    yvalues = OpenFile.read()
+    OpenFile.close()
+    yvalues = yvalues.splitlines()
+    
+    for i in range(len(xvalues)):
+        yvalues[i] = float(yvalues[i])
+
+    avgy = average(yvalues)
+    Placeholder1 = 0
+    Placeholder2 = 0
+    i = 0
+
+    for i in range(len(xvalues)):
+        Placeholder1 = Placeholder1 + ((xvalues[i] - avgx) * (yvalues[i] - avgy))
+        Placeholder2 = Placeholder2 + (xvalues[i] - avgx)**2
+    
+    m = Placeholder1 / Placeholder2
+    b = avgy - m * avgx
+
+    tk.Label(LinearFrame, text = "Slope: " + str(m)).grid()
+    tk.Label(LinearFrame, text = "Y-Axis Intersect: " + str(b)).grid()
+
+
+
 ##################################################################
-#Primeiro Algoritmo!
-# Muito WIP
+#Primeiro Algoritmo! Estabelece o Threshold e seleciona os picos
 ##################################################################
-def NRMethod(Peaks):
+def ThresholdM(Peaks):
 
     Text = open("Data.txt", "r")
-    Counts = Text.read()
+    List1 = Text.read()
     Text.close()
-    Counts = Counts.splitlines()
-    Counts.reverse()
-    Channel = []
+    List1 = List1.splitlines()
+    List1.reverse()
+    List2 = []
 
-    for i in range(len(Counts)):
-        Counts[i] = float(Counts[i])
-        Channel.append(i+1)
+    for i in range(len(List1)):
+        List1[i] = float(List1[i])
+        List2.append(i+1)
 
-    Channel.reverse()
+    List2.reverse()
     i = 0
     Threshold = 50
     j = 0
 
     ########## O ARRAY TEM QUE SER DEFINIDO ASSIM PARA 
     # CADA LISTA DENTRO DA LISTA SEJA INDEPENDENTE
-    #EPLICACAO:
+    #EXPLICACAO:
     #https://www.geeksforgeeks.org/python-using-2d-arrays-lists-the-right-way/
-    Aux = [[0 for i in range(1)] for j in range (Peaks)]   #[ [], [], ..., [] ]
+    Yaxis = [[0 for i in range(1)] for j in range (Peaks)]   #[ [], [], ..., [] ]
+    Xaxis = [[0 for i in range(1)] for j in range (Peaks)]
 
     Temp = []
     
-    for i in range(len(Counts)):
-        if Counts[i] > Threshold:
-            Temp.append(Counts[i])
-        if Counts[i] <= Threshold:
+    for i in range(len(List1)):
+        if List1[i] > Threshold:
+            Temp.append(List1[i])
+        if List1[i] <= Threshold:
             Temp.append(0)
 
-    Counts.clear()
+    List1.clear()
     j = 0
     i = 0
 
@@ -121,12 +165,13 @@ def NRMethod(Peaks):
         
         elif Temp[i] == 0 and Temp[i+1] != 0:
             
-            Aux[j].append(Temp[i+1])
-            #Counts.append(Channel[i])
+            Yaxis[j].append(Temp[i+1])
+            Xaxis[j].append(List2[i+1])
 
         elif Temp[i] != 0 and Temp[i+1] != 0:
 
-            Aux[j].append(Temp[i+1])
+            Yaxis[j].append(Temp[i+1])
+            Xaxis[j].append(List2[i+1])
 
 
         elif Temp[i] != 0 and Temp[i+1] == 0:
@@ -136,22 +181,43 @@ def NRMethod(Peaks):
         elif Temp[i] == 0 and Temp[i+1] == 0:
             
             ()    
-    
-    print(Aux)
            
     j = 0
+    i = 0
 
-    Channel.clear()
+    Temp.clear()
+    List2.clear()
+    
+    tk.Label(ResultFrame, text = "Peaks \t Counts \t Channel", 
+                     font = 14).grid(row = 0, columnspan = 2)
 
     for j in range(Peaks):
-        Channel.append(max(Aux[j]))
-        print(Channel[j])
+        Temp.append(int(max(Yaxis[j]))) ###Guarda os Maximos
+
+        i = Yaxis[j].index(max(Yaxis[j])) ###Guarda o indice dos Maximos
+        List2.append(Xaxis[j][i])      ###Devolve o número do canal Correspondente
+                                        # ao maximo
+
+        tk.Label(ResultFrame, text = "Peak " + str(Peaks - j) + ":\t" + 
+                            str(Temp[j]) + "\t" + str(List2[j])).grid(columnspan = 2)
+    
+    Linearize = tk.Button(ResultFrame, text = "Linearize", 
+              command = Regression(List2))
+    Linearize.grid(row = 2 + j, column = 0)
+    
+    tk.Button(ResultFrame, text = "Clear Data", 
+              command = ClearData).grid(row = 2 + j, column = 1)
 
 
+###########################################################
+# Atualiza o algoritmo a ser utilizado, para informar
+# o utilizador
+############################################################
 
-def Method(self):
+def Method(*args):
     Type = Menu.get()
-    tk.Label(master = DataFrame, text = Type + "\n", bg = 'white').grid(row = 1, columnspan = 2)
+    MethodLabel.config(text = Type)
+
 
 
 ###########################################################################
@@ -161,15 +227,27 @@ def Method(self):
 def Analysis():       
 
     Method = Menu.get()
+   
     Peaks = int(PeaksInput.get())
+    ClearData()
+    ResultFrame.grid()
 
 
     if Peaks != 0:
 
-        if Method == 'Noise Remover':
-            NRMethod(Peaks)
+        if Method == 'Gaussian Fit':
+            #GaussM(Peaks)
+            ()
 
-    else:
+        elif Method == 'Threshold-Input':
+            ThresholdM(Peaks)
+
+        elif Method == 'Manual Selection':
+            ()
+            #ManualSM(Peaks)        
+        
+
+    elif Peaks == 0 or Peaks == None:
         Warning = tk.Tk()
         tk.Label(Warning, text = 'No Information of the Number of Peaks was Submited \n').grid()
         tk.Label(Warning, text = 'Please Insert the Number of Peaks\n').grid()
@@ -181,7 +259,7 @@ def Analysis():
 
 
 ###############################################################
-# Funcao para abrir novas Tabs, WIP
+# Funcao para abrir novas Tabs, MUITO WIP
 ################################################################
 def Tabs():
 
@@ -190,10 +268,10 @@ def Tabs():
     Tab.add(test2, text = 'Trial 1')
     
 
-########
+################################################################
 #Toda esta secçao define as estruturas presentes na janela
 #A maior parte dos widgets têm comentarios para explicar o contexto
-#####
+###################################################################
 main = tk.Tk() #Janela Principal
 main.state('zoomed')
 main.title("AEL Thin Film Characterization")
@@ -224,6 +302,18 @@ DataFrame.columnconfigure(0, weight = 1)
 DataFrame.columnconfigure(1, weight = 1)
 DataFrame.grid_propagate(True)
 
+    #Frame para os Resultados do Algoritmo
+    #Encontra-se dentro da DataFrame
+ResultFrame = tk.LabelFrame(master = DataFrame)
+ResultFrame.grid(row = 5, columnspan = 2, pady = 5)
+ResultFrame.columnconfigure(0, weight = 1)
+ResultFrame.columnconfigure(1, weight = 1)
+
+    #Frame para os Dados Linearizados
+LinearFrame = tk.LabelFrame(master = DataFrame)
+LinearFrame.grid(row = 6, columnspan = 2, pady = 5)
+LinearFrame.columnconfigure(0, weight = 1)
+LinearFrame.columnconfigure(1, weight = 1)
 
 #################### Tabs ########################
 
@@ -233,15 +323,18 @@ CalibFrame = tk.Frame(TabFrame, borderwidth = 5, relief ='sunken', bg = 'blue', 
 CalibFrame.grid()
 Tab.add(CalibFrame, text = 'Calib Trial')
 
-#################### ENTRIES ###########################
+#################### ENTRIES E LABELS ########################
 
-tk.Label(DataFrame, text = 'Analysis Method Selected: \n').grid(row = 0, columnspan = 2)
+tk.Label(DataFrame, text = 'Analysis Method Selected: ').grid(row = 0, columnspan = 2)
 
 tk.Label(DataFrame, text = 'Please Input Number of Peaks: \n').grid(row = 2, columnspan = 2)
 PeaksInput = tk.StringVar()
 PeaksInput.set('0')
 Entry = tk.Entry(DataFrame, textvariable = PeaksInput, relief = 'sunken',
-                  borderwidth = 2, bg = 'white').grid(row = 3, columnspan= 2)
+                  borderwidth = 2).grid(row = 3, columnspan= 2)
+MethodLabel = tk.Label(DataFrame, text = "\n")
+MethodLabel.grid(row = 1, columnspan = 2)
+
 
 
 ##################### BUTOES #######################
@@ -253,7 +346,7 @@ tk.Button(ToolbarFrame, text = "Insert Files" , command = FileReader, height = 1
     #Menu Dropwdown das Ferramentas de análise
 Menu = tk.StringVar()
 Menu.set("Select Analysis Method")
-Options = ["Peak-Input", "Noise Remover", "Manual Selection"]
+Options = ["Gaussian Fit", "Threshold-Input", "Manual Selection"]
 tk.OptionMenu(ToolbarFrame, Menu, *Options, command = Method).grid(column = 1, row = 0)
     
     #Botão de Começo da Análise
