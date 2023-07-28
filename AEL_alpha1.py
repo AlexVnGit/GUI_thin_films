@@ -48,7 +48,6 @@ def ClearData(Value):
             widget.destroy()
         DecayFrame.grid_remove()
 
-
 #############################################
 # Esta funcao recebe os dados dos ficheiros externos
 # e insere os graficos na frame grande do GUI.
@@ -106,50 +105,56 @@ def FileReader():
 def Regression(xvalues):
 
     ClearData(1)
-    LinearFrame.grid(row = 6, columnspan = 2, pady = 5)
+    LinearFrame.grid(row = 6, pady = 5, padx = 5, columnspan = 2, sticky = 's')
     LinearFrame.columnconfigure(0, weight = 1)
     LinearFrame.columnconfigure(1, weight = 1)
 
     avgx = average(xvalues)
-    OpenFile = open("226_Ra.txt")
-    yvaluesread = OpenFile.read()
-    OpenFile.close()
-    yvaluesread = yvaluesread.splitlines()
+    Placeholder = []
+
+    for i in range(len(Decay)):
+        Placeholder.append(float(Decay[i].get()))
+  
     yvalues = []
-
-    for i in range(len(xvalues)):
-        if i < len(yvaluesread):
-            yvalues.append(float(yvaluesread[i]))
-        else:
-            yvalues.append(0)
-
-    avgy = average(yvalues)
-    Placeholder1 = 0
-    Placeholder2 = 0
     i = 0
-
-    for i in range(len(xvalues)):
-        Placeholder1 = Placeholder1 + ((xvalues[i] - avgx) * (yvalues[i] - avgy))
-        Placeholder2 = Placeholder2 + (xvalues[i] - avgx)**2
+    for i in range(len(Decay)):
+        if Placeholder[i] != 0:
+            yvalues.append(Placeholder[i])
     
-    m = Placeholder1 / Placeholder2
-    b = avgy - m * avgx
-    #i = 0
-    #Placeholder1 = 0
-    #Placeholder2 = 0
+    if len(yvalues) != len(xvalues):
 
-    #for i in range(len(xvalues)):
-     #   Placeholder1 = yvalues[i] - m * xvalues[i] + b + Placeholder1
-      #  Placeholder2 = Placeholder2 + Placeholder1**2
+        RegWarn = tk.Toplevel(main)
+        RegWarn.title("Warning")
+        RegWarn.geometry("700x300")
+        RegWarn.grab_set()
+        tk.Label(RegWarn, text = "Number of Radiation Decay does not " + 
+                 "match the number of Peaks detected.\n").pack()
+        tk.Label(RegWarn, text = "Please adjust the Peak Algorithm or the " +
+                 "number of Decay Energy.\n\n").pack()
+        tk.Button(RegWarn, text = "Return", command = lambda : RegWarn.destroy()).pack()
+        ClearData(1)
+
+    else:
+        Placeholder.clear()
+
+        avgy = average(yvalues)
+        Placeholder1 = 0
+        Placeholder2 = 0
+        i = 0
+
+        for i in range(len(xvalues)):
+            Placeholder1 = Placeholder1 + ((xvalues[i] - avgx) * (yvalues[i] - avgy))
+            Placeholder2 = Placeholder2 + (xvalues[i] - avgx)**2
     
-    #Placeholder1 = Placeholder2 / len(xvalues)
+        m = Placeholder1 / Placeholder2
+        b = avgy - m * avgx
 
-    tk.Label(LinearFrame, text = "Slope: " + str(m)).grid(row = 0, columnspan = 2)
-    tk.Label(LinearFrame, text = "Y-Axis Intersect: " + str(b)).grid(row = 1, columnspan = 2)
+        tk.Label(LinearFrame, text = "Slope: " + str(m)).grid(row = 0, columnspan = 2)
+        tk.Label(LinearFrame, text = "Y-Axis Intersect: " + str(b)).grid(row = 1, columnspan = 2)
 
-    tk.Button(LinearFrame, text = "Save Data").grid(row = 2, column = 0)
-    tk.Button(LinearFrame, text = "Clear Data", 
-             command = lambda : ClearData(1)).grid(row = 2, column = 1)
+        tk.Button(LinearFrame, text = "Save Data").grid(row = 2, column = 0)
+        tk.Button(LinearFrame, text = "Clear Data", 
+                command = lambda : ClearData(1)).grid(row = 2, column = 1)
 
 ##################################################################
 #Primeiro Algoritmo! Estabelece o Threshold e seleciona os picos
@@ -243,6 +248,13 @@ def ThresholdM(Peaks):
     tk.Button(ResultFrame, text = "Clear Data", 
               command = lambda : ClearData(0)).grid(row = 2 + j, column = 1)
 
+def ManualSel():
+
+    Alpha = Source.get()
+
+    if Alpha == 'Radium 226':
+        ()
+
 ###########################################################
 # Atualiza o algoritmo a ser utilizado, para informar
 # o utilizador
@@ -283,43 +295,92 @@ def Analysis():
         Warning = tk.Tk()
         tk.Label(Warning, text = 'No Information of the Number of Peaks was Submited \n').grid()
         tk.Label(Warning, text = 'Please Insert the Number of Peaks\n').grid()
-        tk.Button(Warning, text = 'Return', command = Warning.destroy).grid()
+        tk.Button(Warning, text = 'Return', command = lambda : Warning.destroy).grid()
 
-   
+#########################################################################
+#Funcao que define a fonte de alfas a ser utilizada
+##########################################################################
 def SourceReader(*args):
     
     Alpha = Source.get()
-    SourceLabel.config(text = Alpha)
+    SourceLabel.config(text = Alpha + "\n")
     ClearData(2)
-    DecayFrame.grid(row = 2, columnspan = 3, ipadx = 5, ipady = 5, padx = 5, pady = 5)
+    DecayFrame.grid(row = 0, column = 1, ipadx = 5, ipady = 5, padx = 5, pady = 5)
 
     if Alpha == 'Radium 226':
-        tk.Label(DecayFrame, text = '226 Ra -> 222 Rn: 4,77301 MeV').grid(column = 0)
-        tk.Label(DecayFrame, text = '222 Rn -> 218 Po: 5,48950 MeV').grid(column = 0)
-        tk.Label(DecayFrame, text = '218 Po -> 214 Pb: 6,00255 MeV').grid(column = 0)
-        tk.Label(DecayFrame, text = '214 Po -> 210 Pb: 7,68682 MeV').grid(column = 0)
-        tk.Label(DecayFrame, text = '210 Po -> 206 Pb: 5,30433 MeV').grid(column = 0)
-    
-    elif Alpha == 'Uranium 232':
-        tk.Label(DecayFrame, text = '232 U  -> 228 Th: 5,30216 MeV').grid(column = 0)
-        tk.Label(DecayFrame, text = '228 Th -> 224 Ra: 5,40050 MeV').grid(column = 0)
-        tk.Label(DecayFrame, text = '224 Ra -> 220 Rn: 5,67339 MeV').grid(column = 0)
-        tk.Label(DecayFrame, text = '220 Rn -> 216 Po: 6,28808 MeV').grid(column = 0)
-        tk.Label(DecayFrame, text = '216 Po -> 212 Pb: 6,77830 MeV').grid(column = 0)
-        tk.Label(DecayFrame, text = '212 Bi -> 208 Tl: 6,05107 MeV').grid(column = 0)
-        tk.Label(DecayFrame, text = '212 Po -> 208 Pb: 8,78437 MeV').grid(column = 0)
+        Radium1 = tk.Checkbutton(DecayFrame, onvalue = 7.68682, offvalue = 0,
+                        text = '214 Po -> 210 Pb: 7,68682 MeV', variable = Decay[0])
+        Radium1.grid(column = 0)
+        Radium1.select()
 
+        Radium2 = tk.Checkbutton(DecayFrame, onvalue = 6.00255, offvalue = 0,
+                        text = '218 Po -> 214 Pb: 6,00255 MeV', variable = Decay[1])
+        Radium2.grid(column = 0)
+        Radium2.select()
+
+        Radium3 = tk.Checkbutton(DecayFrame, onvalue = 5.48950, offvalue = 0,
+                        text = '222 Rn -> 218 Po: 5,48950 MeV', variable = Decay[2])
+        Radium3.grid(column = 0)
+        Radium3.select()
+
+        Radium4 = tk.Checkbutton(DecayFrame, onvalue = 5.30433, offvalue = 0,
+                        text = '210 Po -> 206 Pb: 5,30433 MeV', variable = Decay[3])
+        Radium4.grid(column = 0)
+        Radium4.select()
+
+        Radium5 = tk.Checkbutton(DecayFrame, onvalue = 4.77301, offvalue = 0,
+                        text = '226 Ra -> 222 Rn: 4,77301 MeV', variable = Decay[4])
+        Radium5.grid(column = 0)
+        Radium5.select()
+
+        Decay6.set('0')
+        Decay7.set('0')
+
+    elif Alpha == 'Uranium 232':
+        Uranium1 = tk.Checkbutton(DecayFrame, onvalue = 8.78437, offvalue = 0,
+                        text = '212 Po -> 208 Pb: 8,78437 MeV', variable = Decay[0])
+        Uranium1.grid(column = 0)
+        Uranium1.select()
+
+        Uranium2 = tk.Checkbutton(DecayFrame, onvalue = 6.77830, offvalue = 0,
+                        text = '216 Po -> 212 Pb: 6,77830 MeV', variable = Decay[1])
+        Uranium2.grid(column = 0)
+        Uranium2.select()
+
+        Uranium3 = tk.Checkbutton(DecayFrame, onvalue = 6.28808, offvalue = 0,
+                        text = '220 Rn -> 216 Po: 6,28808 MeV', variable = Decay[2])
+        Uranium3.grid(column = 0)
+        Uranium3.select()
+
+        Uranium4 = tk.Checkbutton(DecayFrame, onvalue = 6.05107, offvalue = 0,
+                        text = '212 Bi -> 208 Tl: 6,05107 MeV', variable = Decay[3])
+        Uranium4.grid(column = 0)
+        Uranium4.select()
+        
+        Uranium5 = tk.Checkbutton(DecayFrame, onvalue = 5.67339, offvalue = 0,
+                        text = '224 Ra -> 220 Rn: 5,67339 MeV', variable = Decay[4])
+        Uranium5.grid(column = 0)
+        Uranium5.select()
+        
+        Uranium6 = tk.Checkbutton(DecayFrame, onvalue = 5.40050, offvalue = 0,
+                        text = '228 Th -> 224 Ra: 5,40050 MeV', variable = Decay[5])
+        Uranium6.grid(column = 0)
+        Uranium6.select()
+
+        Uranium7 = tk.Checkbutton(DecayFrame, onvalue = 5.30216, offvalue = 0,
+                        text = '232 U  -> 228 Th: 5,30216 MeV', variable = Decay[6])
+        Uranium7.grid(column = 0)
+        Uranium7.select()
 
 ###############################################################
 # Funcao para abrir novas Tabs, MUITO WIP
 ################################################################
 def Tabs():
 
-    test2 = tk.Frame(TabFrame, borderwidth = 5, relief = 'sunken', bg = 'red', height = 1)
+    test2 = ttk.Frame(Tab, borderwidth = 5, relief = 'sunken', height = 1)
     test2.grid()
     Tab.add(test2, text = 'Trial 1')
     
-
 ################################################################
 #Toda esta secçao define as estruturas presentes na janela
 #A maior parte dos widgets têm comentarios para explicar o contexto
@@ -333,14 +394,13 @@ main.columnconfigure(1, weight = 1)
 
 ######################## FRAMES #################################
 
-
     #Frame dos ícones ferramentas
 ToolbarFrame = tk.LabelFrame(main, borderwidth = 5, relief = 'ridge') 
 ToolbarFrame.grid(column = 0, row = 0, sticky = "nw", columnspan = 1)
 
     #Frame das Tabs
 TabFrame = tk.LabelFrame(main, borderwidth = 5, relief = 'ridge')
-TabFrame.grid(column = 3, row = 0, sticky = 'ne', columnspan = 2)
+TabFrame.grid(column = 4, row = 0, sticky = 'e')
 
     #Frame para o Gráfico
 GraphicFrame = tk.Frame(main, borderwidth = 5, relief = 'ridge')
@@ -349,54 +409,80 @@ GraphicFrame.grid(column = 0, row = 1, sticky = "nw", pady = 5, columnspan = 2)
 
     #Frame para os Dados
 DataFrame = tk.LabelFrame(main, borderwidth = 5, relief = 'ridge')
-DataFrame.grid(column = 3, row = 1, sticky = "ne")
+DataFrame.grid(column = 4, row = 1, sticky = "ne")
 DataFrame.columnconfigure(0, weight = 1)
 DataFrame.columnconfigure(1, weight = 1)
-DataFrame.grid_propagate(True)
+#DataFrame.columnconfigure(2, weight = 1)
+DataFrame.rowconfigure(0, weight = 1)
+DataFrame.rowconfigure(1, weight = 1)
+DataFrame.rowconfigure(2, weight = 1)
+DataFrame.rowconfigure(3, weight = 1)
+#DataFrame.grid_propagate(True)
+
+GoldenFrame = tk.LabelFrame(master = DataFrame, borderwidth = 0)
+GoldenFrame.grid(row = 1, column = 0, columnspan = 2)
 
     #Frame para os Resultados do Algoritmo
     #Encontra-se dentro da DataFrame
-ResultFrame = tk.LabelFrame(master = DataFrame)
-ResultFrame.grid(row = 5, columnspan = 2, pady = 5)
-ResultFrame.columnconfigure(0, weight = 1)
-ResultFrame.columnconfigure(1, weight = 1)
+ResultFrame = tk.LabelFrame(master = GoldenFrame, borderwidth = 0)
+ResultFrame.grid(row = 0, column = 0, pady = 5, padx = 5, sticky = 'nw')
+
+    #Frame para o Algoritmo a ser usado
+InfoFrame = tk.LabelFrame(master = DataFrame)
+InfoFrame.grid(column = 0, row = 0, padx = 5, pady = 5, sticky = 'n')
 
     #Frame para os Dados Linearizados
 LinearFrame = tk.LabelFrame(master = DataFrame)
 
     #Frame Mae para o Decaimento da Particula
-DecayFrameMaster = tk.LabelFrame(master = main, borderwidth = 5, relief = 'ridge')
-DecayFrameMaster.grid(row = 1, column = 2, sticky = 'ne', padx = 5)
+DecayFrameMaster = tk.LabelFrame(master = DataFrame)
+DecayFrameMaster.grid(row = 0, column = 1, padx = 5, pady = 5, sticky = 'n')
 
     #Frame com informacoes sobre o Decaimento da Particula
-DecayFrame = tk.LabelFrame(master = DecayFrameMaster)
+DecayFrame = tk.LabelFrame(master = GoldenFrame, borderwidth = 0)
 
 
 #################### Tabs ########################
 
 Tab = ttk.Notebook(TabFrame)
 Tab.grid(sticky = "w")
-CalibFrame = tk.Frame(TabFrame, borderwidth = 5, relief ='sunken', bg = 'blue', height = 1 )
+CalibFrame = ttk.Frame(Tab, borderwidth = 5, relief ='sunken', height = 1 )
 CalibFrame.grid()
 Tab.add(CalibFrame, text = 'Calib Trial')
 
-#################### ENTRIES E LABELS ########################
+#################### ENTRIES, LABELS E STRINGVAR########################
 
-tk.Label(DataFrame, text = 'Analysis Method Selected: ').grid(row = 0, columnspan = 2)
-tk.Label(DataFrame, text = 'Please Input Number of Peaks: \n').grid(row = 2, columnspan = 2)
+tk.Label(InfoFrame, text = 'Analysis Method Selected: ').grid(row = 0, columnspan = 2)
+tk.Label(InfoFrame, text = 'Please Input Number of Peaks: \n').grid(row = 2, columnspan = 2)
 
 PeaksInput = tk.StringVar()
 PeaksInput.set('0')
-Entry = tk.Entry(DataFrame, textvariable = PeaksInput, relief = 'sunken',
+Entry = tk.Entry(InfoFrame, textvariable = PeaksInput, relief = 'sunken',
                   borderwidth = 2).grid(row = 3, columnspan= 2)
-MethodLabel = tk.Label(DataFrame, text = "")
+MethodLabel = tk.Label(InfoFrame, text = "")
 MethodLabel.grid(row = 1, columnspan = 2)
 
 tk.Label(DecayFrameMaster, 
-         text = 'Source of Alpha Particles', font = 14).grid(row = 0)
-SourceLabel = tk.Label(DecayFrameMaster, text = '')
-SourceLabel.grid(row = 1)
+         text = '\n Source of Alpha Particles').grid(row = 0, columnspan = 1)
+SourceLabel = tk.Label(DecayFrameMaster, text = '\n')
+SourceLabel.grid(row = 1, columnspan = 1)
 
+Decay1 = tk.StringVar()
+Decay1.set('0')
+Decay2 = tk.StringVar()
+Decay2.set('0')
+Decay3 = tk.StringVar()
+Decay3.set('0')
+Decay4 = tk.StringVar()
+Decay4.set('0')
+Decay5 = tk.StringVar()
+Decay5.set('0')
+Decay6 = tk.StringVar()
+Decay6.set('0')
+Decay7 = tk.StringVar()
+Decay7.set('0')
+
+Decay = [Decay1, Decay2, Decay3, Decay4, Decay5, Decay6, Decay7]
 
 ##################### BUTOES #######################
     
