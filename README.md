@@ -9,7 +9,7 @@ It has three main milestones, that could/should be achievable with enough time:
 For the interface to run, it is required to install the Python Tkinter and Matplotlib Libraries.
 
 Main issues:
-  Making the Plots that show up interactive.
-  Making sure the Tabs open up new menus
-  Making sure the Frames are stationary
-  Making sure the Interface opens up to the user's computer
+  Making the Plots that show up interactive. (Fixed)
+  Making sure the Tabs open up new menus (Fixed)
+  Making sure the Frames are stationary (Fixed)
+  Making sure the Interface opens up to the user's computer (Fixed)

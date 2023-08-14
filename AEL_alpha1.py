@@ -26,7 +26,7 @@ ctypes.windll.shcore.SetProcessDpiAwareness(1)
 ##########################################################
 # Funcao para os botoes do MATPLOTLIB funcionarem no widget
 ###########################################################
-def on_key_event(event, canvas, toolbar):
+def on_key_event(event, canvas, toolbar): #Descontinuado
     matplotlib.backend_bases.key_press_handler(event, canvas, toolbar)
 
 ###########################################################
@@ -54,7 +54,7 @@ def ClearData(Value):
 # Ao mesmo tempo cria um txt para outras funções
 # acederem aos dados
 #############################################
-def Plot(File, Name):
+def Plot(File, Name): #Transferido
     Channel = []
     Counts = []
 
@@ -88,7 +88,7 @@ def Plot(File, Name):
 ##############################################################################
 #Esta funcao ira ler o ficheiro input.
 ##############################################################################
-def FileReader(): 
+def FileReader(): #Transferido
 
     domain = (('text files', '*.mca'), ('all files', '*.*'))
     filename = fd.askopenfilename(title = 'Open a file', initialdir = '.', filetypes = domain)
@@ -375,7 +375,7 @@ def SourceReader(*args):
 ###############################################################
 # Funcao para abrir novas Tabs, MUITO WIP
 ################################################################
-def Tabs():
+def Tabs(): #Transferido
 
     test2 = ttk.Frame(Tab, borderwidth = 5, relief = 'sunken', height = 1)
     test2.grid()
