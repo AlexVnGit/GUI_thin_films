@@ -21,16 +21,22 @@ import math
 ########## Ajusta-se ao ecra e foca os widgets ######
 import ctypes
 ctypes.windll.shcore.SetProcessDpiAwareness(1)
-######################################################
+###########################################################
+# Returns the index of the Tab the user is on
+###########################################################
+def Current_Tab():
+
+    final_num = int(Notebook.notebook.select()[-1]) - 3  # Devolve o id da tab onde o utilizador se encontra                # Vai buscar o numero na string do id
+              # Altera-se o valor para corresponder aos indices da lista
+
+    return final_num
 
 #########################################################################################
 # Apaga as widgets dentro de frames e tira a geometria de frames, para fazer renovacao
 # de dados. Podera conter, eventualmente, mais frames do que contem agora
 #########################################################################################
 def ClearWidget(Frame, parameter):
-    num = Notebook.notebook.select()  # Devolve o id da tab onde o utilizador se encontra
-    num = num[-1]                     # Vai buscar o numero na string do id
-    num = int(num) - 3                # Altera-se o valor para corresponder aos indices da lista
+    num = Current_Tab()
 
     if Frame == 'Graphic':
         for widgets in TabList[num][1].GraphicFrame.winfo_children():
@@ -49,12 +55,15 @@ def ClearWidget(Frame, parameter):
         if parameter == 1: #Porque o search do algoritmo de selecao manual reconstroi os widgets
                            # da frame sempre que se encontra um novo ponto, e necessario
                            # configurar o caso onde ha reset dos dados e o caso onde nao ha reset
-            """ TabList[num][1].Results_List_x = []
-            TabList[num][1].Results_List_y = [] """
             try:
                 os.remove(TabList[num][3])
             except:
                 ()        
+
+    elif Frame == 'Source':
+        for widget in TabList[num][1].SourceOptionsFrame.winfo_children():
+            widget.destroy()
+        TabList[num][1].SourceOptionsFrame.grid_remove()
 
     elif Frame == 'Everything':
         for widgets in TabList[num][1].GraphicFrame.winfo_children():
@@ -69,14 +78,16 @@ def ClearWidget(Frame, parameter):
         TabList[num][1].AlgFrame.grid_remove()
 
 
-        for widgets in TabList[num][1].ResultFrame.winfo_children():
-            widgets.destroy()         # Este 'for' destroi grafcos antigos e constoi novos
+        for widget in TabList[num][1].ResultFrame.winfo_children():
+            widget.destroy()         # Este 'for' destroi grafcos antigos e constoi novos
         widget = 0
         TabList[num][1].ResultFrame.grid_remove()
 
+        for widget in TabList[num][1].SourceOptionsFrame.winfo_children():
+            widget.destroy()
+            TabList[num][1].SourceOptionsFrame.grid_remove()
+
         if parameter == 1:
-            """ TabList[num][1].Results_List_x = []
-            TabList[num][1].Results_List_y = [] """
             try:
                 os.remove(TabList[num][3])
             except:
@@ -87,9 +98,7 @@ def ClearWidget(Frame, parameter):
 ########################################################################################
 def ResultManager():
 
-    num = Notebook.notebook.select()  # Devolve o id da tab onde o utilizador se encontra
-    num = num[-1]                     # Vai buscar o numero na string do id
-    num = int(num) - 3                # Altera-se o valor para corresponder aos indices da lista
+    num = Current_Tab()
 
     ClearWidget('Results', 0)
     TabList[num][1].ResultFrame.grid(row = 3, columnspan = 2, pady = 5)
@@ -122,12 +131,11 @@ def ResultManager():
 # Retira os resultados que nao estao checked e atualiza o txt dos resultados
 ##########################################################################################        
 def Unchecked_Results():
-    num = Notebook.notebook.select()  # Devolve o id da tab onde o utilizador se encontra
-    num = num[-1]                     # Vai buscar o numero na string do id
-    num = int(num) - 3                # Altera-se o valor para corresponder aos indices da lista
-
+    num = Current_Tab()
     i = 0
     j = 0
+    k = 0
+
 
     Eraser = []
     Aux = []
@@ -144,14 +152,25 @@ def Unchecked_Results():
     for i in range(len(TabList[num][1].Var_Data)):
 
         if TabList[num][1].Var_Data[i].get() == 1:
-            Aux.append(lines[i])
+            Aux.append(lines[k])
     
         elif TabList[num][1].Var_Data[i].get() == -1:
             Eraser[j].destroy()
             Eraser[j + 1].destroy()
             TabList[num][1].Var_Data[i].set(0)
 
+        elif TabList[num][1].Var_Data[i].get() == 0:
+            k = k - 1
+
         j += 2
+        k += 1
+
+    i = 0
+
+    for i in range(len(TabList[num][1].Var_Data)):
+        if TabList[num][1].Var_Data[i].get() == 0:
+            TabList[num][1].Var_Data.append(TabList[num][1].Var_Data[i])
+            TabList[num][1].Var_Data.pop(i)
 
     i = 0
 
@@ -159,15 +178,92 @@ def Unchecked_Results():
         for i in range(len(Aux)):
             file.write(Aux[i] + '\n')
 
+#########################################################################################
+# Linearizes the results with the radiation sources
+#########################################################################################
+def Linearize():
+
+    num = Current_Tab()
+    OpenFile = open(TabList[num][3], 'r')
+    lines = OpenFile.read()
+    OpenFile.close()
+    lines = lines.splitlines()  
+    Results = [[0 for i in range(1)]for j in range(len(lines))]
+    i = 0
+
+    xaxis = []
+    yaxis = []
+
+    avgx = 0
+    avgy = 0
+
+    for line in lines:
+        Results[i] = (line.split(','))
+        xaxis.append(int(Results[i][0])) 
+
+        if TabList[num][1].DecayList[i] != 0:
+            yaxis.append(TabList[num][1].DecayList[i].get())
+
+        avgx = xaxis[i] + avgx
+        avgy = yaxis[i] + avgy
+
+        i += 1
+    
+    xvalues = sorted(xaxis)
+    yvalues = sorted(yaxis)
+    print(xvalues)
+    print(yvalues)
+
+    avgx = avgx / len(xvalues)
+    avgy = avgy / len(yvalues)
+
+    Placeholder1 = 0
+    Placeholder2 = 0
+    i = 0
+
+    for i in range(len(xvalues)):
+        Placeholder1 = Placeholder1 + ((xvalues[i] - avgx) * (yvalues[i] - avgy))
+        Placeholder2 = Placeholder2 + (xvalues[i] - avgx)**2
+
+    m = Placeholder1 / Placeholder2
+    b = avgy - m * avgx
+
+    sigma = 0
+    i = 0
+    Placeholder1 = 0
+    Placeholder2 = 0
+
+    for i in range(0, len(xvalues)):
+        sigma = (yvalues[i] - m * xvalues[i] - b)**2 + sigma
+        Placeholder1 = xvalues[i]**2 + Placeholder1
+
+    Placeholder2 = (sum(xvalues))**2
+    sigma = sigma / (len(xvalues) - 2) 
+
+    sigma_m = math.sqrt(sigma / ( Placeholder1 - (Placeholder2/len(xvalues))))
+    sigma_b = math.sqrt((sigma * Placeholder1)/((len(xvalues) * Placeholder1) - Placeholder2))
+
+    tk.Label(TabList[num][1].LinearRegressionFrame, text = '(MeV)').grid(row = 0, column = 0)
+    tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Values').grid(row = 0, column = 1)
+    tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Uncertainty').grid(row = 0, column = 2)
+    tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Slope').grid(row = 1, column = 0)
+    tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Intercept').grid(row = 2, column = 0)
+
+    tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.7f' %(m)).grid(row = 1, column = 1)
+    tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.7f' %(sigma_m)).grid(row = 1, column = 2)
+    tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.4f' %(b)).grid(row = 2, column = 1)
+    tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.4f' %(sigma_b)).grid(row = 2, column = 2)
+
+    tk.Button(TabList[num][1].LinearRegressionFrame, text = 'Commit Regression').grid(row = 3, column = 0)
+    tk.Button(TabList[num][1].LinearRegressionFrame, text = 'Clear Linear Regression').grid(row = 3, column = 1)
+
 ###############################################################################
 # Este e o algoritmo que determina a distancia quadrada minima entre pontos
 # input, e pontos de dados
 ###############################################################################
 def ManSelec_Alg(Valuex, Valuey):
 
-    num = Notebook.notebook.select()  # Devolve o id da tab onde o utilizador se encontra
-    num = num[-1]                     # Vai buscar o numero na string do id
-    num = int(num) - 3                # Altera-se o valor para corresponder aos indices da lista
+    num = Current_Tab()
 
     with open(TabList[num][2], "r") as file:   #Leitura do ficheiro
         Counts = [int(line) for line in file]   #Extracao dos counts
@@ -181,9 +277,6 @@ def ManSelec_Alg(Valuex, Valuey):
 
     Valuex = AuxList.index(min(AuxList)) + 1 #Corresponde ao channel com distancia minima
     Valuey = Counts[Valuex - 1] #Corresponde ao count do indice do xvalue
-    
-    """ TabList[num][1].Results_List_x.append(Valuex)
-    TabList[num][1].Results_List_y.append(Valuey) """
 
     if os.path.isfile(TabList[num][3]) == True:
         with open(TabList[num][3], 'a') as results:
@@ -196,23 +289,18 @@ def ManSelec_Alg(Valuex, Valuey):
 
     ResultManager()
     
-
-    """ ResultManager(TabList[num][1].Results_List_y, TabList[num][1].Results_List_x) """
-    
 ###############################################################################
 # Este e o algoritmo que regista os picos acima de um determinado threshold
 ###############################################################################
 def Threshold_Alg():
 
-    num = Notebook.notebook.select()  # Devolve o id da tab onde o utilizador se encontra
-    num = num[-1]                     # Vai buscar o numero na string do id
-    num = int(num) - 3                # Altera-se o valor para corresponder aos indices da lista
+    num = Current_Tab()
 
 #Use "with open" it will close the file after reading, no need to close it manually
     with open(TabList[num][2], "r") as file:
         Counts = [int(line) for line in file]
 
-    Threshold = Algorithm.get()
+    Threshold = TabList[num][1].Algorithm.get()
     yaxis = []
     current_peak_counts = 0
     current_peak = []
@@ -264,25 +352,17 @@ def Threshold_Alg():
             for i in range(len(xaxis)):
                 results.write(str(xaxis[i]) + ',' + str(yaxis[i]) + '\n')
 
-
     #If the last peak is not added because the data ends with a peak (could be a problem, you should check it)
-    """ if current_peak:
-        yaxis.append(max(current_peak))
-        xaxis.append(counter + current_peak.index(max(current_peak)))
-        counter = counter + len(current_peak)
-        current_peak_counts = 0
-        current_peak = [] """
-    
     ResultManager()
-
-    """ ResultManager(yaxis, xaxis) """
 
 ################################################################################
 # Gere o evento de obtencao de pontos diretamente do grafico
 ################################################################################
 def onclick(event):
 
-    decider = Algorithm_Method.get()
+    num = Current_Tab()
+
+    decider = TabList[num][1].Algorithm_Method.get()
 
     if decider == 'Manual Selection' and event.button == 3:
         xpoint = event.xdata
@@ -300,9 +380,7 @@ def Plot(File, Name):
     Channel = []    #Lista vazia para guardar o Channel
     Counts = []     #Lista vazia para guardar os Counts
 
-    num = Notebook.notebook.select()  # Devolve o id da tab onde o utilizador se encontra
-    num = num[-1]                     # Vai buscar o numero na string do id
-    num = int(num) - 3                # Altera-se o valor para corresponder aos indices da lista
+    num = Current_Tab()
 
     ClearWidget('Graphic', 0)
     TabList[num][1].GraphicFrame.grid(column = 0, row = 0, sticky = "nw", pady = 5, columnspan = 2)
@@ -377,19 +455,48 @@ def handleTabChange(event):
     elif len(Notebook.notebook.tabs()) >= 15:
         Notebook.notebook.hide(14)
 
+############################################################################
+# Esta funcao gere 
+#############################################################################
+def SourceReader(*args):
+
+    num = Current_Tab()
+    
+    ClearWidget('Source', 0)
+    TabList[num][1].SourceOptionsFrame.grid(row = 2, columnspan = 2)
+    
+    Alpha = TabList[num][1].Source.get()
+    Alpha = Alpha + '.txt'
+
+    if Alpha == '226Ra.txt':
+        TabList[num][1].DecayList[6].set(-1)
+
+    with open(Alpha, 'r') as file:
+        Decay = [float(line) for line in file]
+
+    i = 0
+    for i in range(len(Decay)):
+        checkbutton = tk.Checkbutton(TabList[num][1].SourceOptionsFrame, text = str(Decay[i]) + ' MeV',
+                       variable = TabList[num][1].DecayList[i], onvalue = Decay[i], offvalue = -1)
+        checkbutton.grid(row = i, columnspan = 2)
+        checkbutton.select()
+
+    tk.Button(TabList[num][1].SourceOptionsFrame, 
+              text = 'Show Decay Chain').grid(row = i + 1, column = 0)
+    tk.Button(TabList[num][1].SourceOptionsFrame, text = 'Linear Regression', 
+              command = Linearize).grid(row = i + 1, column = 1)
+    
 ##############################################################################
 # Esta funcao altera a interface dos dados inputs para cada algoritmo
 ##############################################################################
 def Method(*args):
 
-    num = Notebook.notebook.select()  # Devolve o id da tab onde o utilizador se encontra
-    num = num[-1]                     # Vai buscar o numero na string do id
-    num = int(num) - 3                # Altera-se o valor para corresponder aos indices da lista
+    num = Current_Tab()
 
     ClearWidget('Algorithm', 0)
     TabList[num][1].AlgFrame.grid(row = 2, columnspan = 2)
 
-    decider = Algorithm_Method.get() #Devolve a StringVar que decide qual o algoritmo em uso
+    decider = TabList[num][1].Algorithm_Method.get() #Devolve a StringVar que decide qual o algoritmo em uso
 
     if decider == 'Manual Selection':   #Definicao dos controlos para o algoritmo ManSelec_Alg
         tk.Label(TabList[num][1].AlgFrame, 
@@ -407,9 +514,9 @@ def Method(*args):
 
     elif decider == 'Threshold Input':  #Definicao dos controlos para o algoritmo Threshold_Alg
         tk.Label(TabList[num][1].AlgFrame, 
-                 text = 'Please input Threshold: ').grid(row = 2, columnspan = 2)
-        tk.Entry(TabList[num][1].AlgFrame, textvariable = Algorithm, relief = 'sunken',
-                  borderwidth = 2).grid(row = 3, columnspan= 2)
+                 text = 'Please input Threshold: ').grid(row = 2, columnspan = 3)
+        tk.Entry(TabList[num][1].AlgFrame, textvariable = TabList[num][1].Algorithm, relief = 'sunken',
+                  borderwidth = 2).grid(row = 3, columnspan= 3)
         tk.Button(TabList[num][1].AlgFrame,text = 'Search', 
                   command =  Threshold_Alg).grid(row = 4, column = 0)
         tk.Button(TabList[num][1].AlgFrame,text = 'Remove Unchecked',
@@ -417,12 +524,6 @@ def Method(*args):
         tk.Button(TabList[num][1].AlgFrame,text = 'Remove All',
                   command = lambda: ClearWidget('Results', 1)).grid(row = 4, column = 2)
         
-    else: #Devolve um aviso para se selecionar um algoritmo
-        wng.popup('Algorithm Selection')
-
-        tk.Label(wng.warning, text = '\nPlease Select an Algorithm \n').pack()
-        tk.Button(wng.warning, text = 'Return', command = lambda: wng.warning.destroy()).pack()
-
 #############################################################################
 # A classe do esqueleto, onde esta a barra de ferramentas e a janela principal
 # do programa
@@ -459,22 +560,6 @@ class Skeleton:
         __file_menu.add_separator()
         __file_menu.add_command(label = 'Exit', command = self.main.quit)
 
-            # Indica ao programa qual a fonte de particulas alfa
-        """ __source_menu = tk.Menu(self.menu, tearoff = False)
-        self.menu.add_cascade(label = 'Alpha Particles Source', menu = __source_menu)
-        __source_menu.add_radiobutton(label = "Ra 226", 
-                                      command = lambda: Method(2))
-        __source_menu.add_radiobutton(label = "Ur 232", 
-                                      command = lambda: Method(2)) """
-
-            # Indica ao programa qual o algoritmo a correr
-        """ __algorithm_menu = tk.Menu(self.menu, tearoff = False)
-        self.menu.add_cascade(label = 'Algorithm', menu = __algorithm_menu)
-        __algorithm_menu.add_command(label = "Manual Selection", 
-                                        command = lambda: Method(1))
-        __algorithm_menu.add_command(label = "Threshold Input", 
-                                        command = lambda: Method(2)) """
-
             # Gere as tabs do programa
         __tabs_menu = tk.Menu(self.menu, tearoff = False)
         self.menu.add_cascade(label = 'Manage Tabs', menu = __tabs_menu)
@@ -482,9 +567,6 @@ class Skeleton:
         __tabs_menu.add_command(label = 'Add Material Tab', command = lambda: Tabs.tab_change(2))
         __tabs_menu.add_separator()
         __tabs_menu.add_command(label = 'Remove Current Tab')
-
-            # Corre o algoritmo
-        #self.menu.add_command(label = 'Run', command = Method)
 
             # Abre o ficheiro Help
         self.menu.add_command(label = "Help")
@@ -556,15 +638,14 @@ class Tabs:
        
         self.ResultFrame = tk.Frame(self.DataFrame)
         self.ResultFrame.grid(row = 3, columnspan = 2, pady = 5)
-
-        tk.Label(self.DataFrame, text = 'Analysis Method Selected: ').grid(row = 0, columnspan = 2)
-        Algs = ["Manual Selection", "Threshold Input"]
-        tk.OptionMenu(self.DataFrame, Algorithm_Method, *Algs, command = Method).grid(row = 1, columnspan = 2)
         
         ##################################### Variaveis para cada instance ##########################
 
-        """ self.Results_List_y = []
-        self.Results_List_x = [] """
+        self.Algorithm_Method = tk.StringVar()
+        self.Algorithm_Method.set('Select Algorithm to Run')
+
+        self.Algorithm = tk.IntVar()
+        self.Algorithm.set(0)
 
         self.variable1 = tk.IntVar()
         self.variable1.set(0)
@@ -603,17 +684,50 @@ class Tabs:
             self.variable11, self.variable12, self.variable13, self.variable14, self.variable15
         ]
     
+        tk.Label(self.DataFrame, text = 'Analysis Method Selected: ').grid(row = 0, columnspan = 2)
+        Algs = ["Manual Selection", "Threshold Input"]
+        tk.OptionMenu(self.DataFrame, self.Algorithm_Method, *Algs, command = Method).grid(row = 1, columnspan = 2)
+
         def MatTab(self):
+
+            self.Mat = tk.StringVar()
+            self.Mat.set('Select Material')
 
             tk.Label(self.SourceFrame, text = 'Material of Film Used: ').grid(row = 0, columnspan = 2)
             Materials = ["Al", "Au", "Pb", "PMMA", "Sn"]
-            tk.OptionMenu(self.SourceFrame, Mat, *Materials ).grid(row = 1, columnspan = 2)
+            tk.OptionMenu(self.SourceFrame, self.Mat, *Materials ).grid(row = 1, columnspan = 2)
 
         def CalibTab(self):
 
+            self.Source = tk.StringVar()
+            self.Source.set('Radiation Sources')
+
+            self.decay1 = tk.DoubleVar()
+            self.decay1.set(0)
+            self.decay2 = tk.DoubleVar()
+            self.decay2.set(0)
+            self.decay3 = tk.DoubleVar()
+            self.decay3.set(0)           
+            self.decay4 = tk.DoubleVar()
+            self.decay4.set(0) 
+            self.decay5 = tk.DoubleVar()
+            self.decay5.set(0) 
+            self.decay6 = tk.DoubleVar()
+            self.decay6.set(0) 
+            self.decay7 = tk.DoubleVar()
+            self.decay7.set(0) 
+
+            self.DecayList = [self.decay1, self.decay2, self.decay3, self.decay4, self.decay5,
+                              self.decay6, self.decay7]
+
             tk.Label(self.SourceFrame, text = 'Radiation Source Selected: ').grid(row = 0, columnspan = 2)
-            options = ["226 Ra", "232 Ur"]
-            tk.OptionMenu(self.SourceFrame, Source, *options ).grid(row = 1, columnspan = 2)
+            options = ["226Ra", "232Ur"]
+            tk.OptionMenu(self.SourceFrame, self.Source, *options, command = SourceReader).grid(row = 1, columnspan = 2)
+            self.SourceOptionsFrame = tk.Frame(self.SourceFrame, borderwidth = 0)
+            self.SourceOptionsFrame.grid(row = 2, columnspan = 2)
+            self.LinearRegressionFrame = tk.Frame(self.SourceFrame, borderwidth = 1)
+            self.LinearRegressionFrame.grid(row = 3, columnspan = 2)
+            
         
         if choice == 1:
             CalibTab(self)
@@ -695,25 +809,6 @@ TabList = [
     [tab11, tabtype11, "Temp\Data11.txt", "Temp\Result11.txt"], [tab12, tabtype12, "Temp\Data12.txt", "Temp\Result12.txt"], 
     [tab13, tabtype13, "Temp\Data13.txt", "Temp\Result13.txt"]
 ]
-
-######### Variaveis globais cujo input e/pode ser utilizado por varias funcoes ############
-
-Algorithm = tk.IntVar()
-Algorithm.set(0)
-
-Algorithm_Method = tk.StringVar()
-Algorithm_Method.set('Select Algorithm to Run')
-
-Source = tk.StringVar()
-Source.set('Radiation Sources')
-
-Mat = tk.StringVar()
-Mat.set('Select Material')
-
-Mnl_selectiony = tk.DoubleVar()
-Mnl_selectiony.set(0)
-Mnl_selectionx = tk.DoubleVar()
-Mnl_selectionx.set(0)
 
 ##############################################################################################
 try: 
