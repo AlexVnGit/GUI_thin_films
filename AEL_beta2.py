@@ -58,12 +58,18 @@ def ClearWidget(Frame, parameter):
             try:
                 os.remove(TabList[num][3])
             except:
-                ()        
+                ()
 
     elif Frame == 'Source':
         for widget in TabList[num][1].SourceOptionsFrame.winfo_children():
             widget.destroy()
         TabList[num][1].SourceOptionsFrame.grid_remove()
+
+    elif Frame == 'Linear':
+        for widget in TabList[num][1].LinearRegressionFrame.winfo_children():
+            widget.destroy()
+        TabList[num][1].LinearRegressionFrame.grid_remove()
+
 
     elif Frame == 'Everything':
         for widgets in TabList[num][1].GraphicFrame.winfo_children():
@@ -86,6 +92,10 @@ def ClearWidget(Frame, parameter):
         for widget in TabList[num][1].SourceOptionsFrame.winfo_children():
             widget.destroy()
             TabList[num][1].SourceOptionsFrame.grid_remove()
+
+        for widget in TabList[num][1].LinearRegressionFrame.winfo_children():
+            widget.destroy()
+            TabList[num][1].LinearRegressionFrame.grid_remove()
 
         if parameter == 1:
             try:
@@ -184,78 +194,97 @@ def Unchecked_Results():
 def Linearize():
 
     num = Current_Tab()
+    
     OpenFile = open(TabList[num][3], 'r')
     lines = OpenFile.read()
     OpenFile.close()
     lines = lines.splitlines()  
     Results = [[0 for i in range(1)]for j in range(len(lines))]
+    
     i = 0
-
     xaxis = []
     yaxis = []
-
-    avgx = 0
-    avgy = 0
 
     for line in lines:
         Results[i] = (line.split(','))
         xaxis.append(int(Results[i][0])) 
 
-        if TabList[num][1].DecayList[i] != 0:
-            yaxis.append(TabList[num][1].DecayList[i].get())
-
-        avgx = xaxis[i] + avgx
-        avgy = yaxis[i] + avgy
-
         i += 1
+
+    i = 0
+
+    for i in range(0, len(TabList[num][1].DecayList)):
+
+        if TabList[num][1].DecayList[i].get() != 0 and TabList[num][1].DecayList[i].get() != -1:
+            yaxis.append(TabList[num][1].DecayList[i].get()) 
+            
     
     xvalues = sorted(xaxis)
     yvalues = sorted(yaxis)
-    print(xvalues)
-    print(yvalues)
+    
+    if len(xvalues) != len(yvalues):
+    
+        wng.popup('Invalid Linear Regression Configuration')
+        tk.Label(wng.warning, 
+                 text = "Number of Radiation Decay does not " + 
+                 "match the number of Peaks detected.\n").pack()
+        tk.Label(wng.warning, text ="Please adjust the Searching Algorithms or the " +
+                 "number of Decay Energy.\n\n").pack()
+        tk.Button(wng.warning, text = 'Return',
+                    command = lambda: wng.warning.destroy()).pack()
+      
 
-    avgx = avgx / len(xvalues)
-    avgy = avgy / len(yvalues)
 
-    Placeholder1 = 0
-    Placeholder2 = 0
-    i = 0
+    else:
 
-    for i in range(len(xvalues)):
-        Placeholder1 = Placeholder1 + ((xvalues[i] - avgx) * (yvalues[i] - avgy))
-        Placeholder2 = Placeholder2 + (xvalues[i] - avgx)**2
+        ClearWidget('Linear', 0)
+        TabList[num][1].LinearRegressionFrame.grid(row = 3, columnspan = 2, pady = 5)
 
-    m = Placeholder1 / Placeholder2
-    b = avgy - m * avgx
+        avgx = sum(xvalues)
+        avgy = sum(yvalues)
+        avgx = avgx / len(xvalues)
+        avgy = avgy / len(yvalues)
 
-    sigma = 0
-    i = 0
-    Placeholder1 = 0
-    Placeholder2 = 0
+        Placeholder1 = 0
+        Placeholder2 = 0
+        i = 0
 
-    for i in range(0, len(xvalues)):
-        sigma = (yvalues[i] - m * xvalues[i] - b)**2 + sigma
-        Placeholder1 = xvalues[i]**2 + Placeholder1
+        for i in range(len(xvalues)):
+            Placeholder1 = Placeholder1 + ((xvalues[i] - avgx) * (yvalues[i] - avgy))
+            Placeholder2 = Placeholder2 + (xvalues[i] - avgx)**2
 
-    Placeholder2 = (sum(xvalues))**2
-    sigma = sigma / (len(xvalues) - 2) 
+        m = Placeholder1 / Placeholder2
+        b = avgy - m * avgx
 
-    sigma_m = math.sqrt(sigma / ( Placeholder1 - (Placeholder2/len(xvalues))))
-    sigma_b = math.sqrt((sigma * Placeholder1)/((len(xvalues) * Placeholder1) - Placeholder2))
+        sigma = 0
+        i = 0
+        Placeholder1 = 0
+        Placeholder2 = 0
 
-    tk.Label(TabList[num][1].LinearRegressionFrame, text = '(MeV)').grid(row = 0, column = 0)
-    tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Values').grid(row = 0, column = 1)
-    tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Uncertainty').grid(row = 0, column = 2)
-    tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Slope').grid(row = 1, column = 0)
-    tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Intercept').grid(row = 2, column = 0)
+        for i in range(0, len(xvalues)):
+            sigma = (yvalues[i] - m * xvalues[i] - b)**2 + sigma
+            Placeholder1 = xvalues[i]**2 + Placeholder1
 
-    tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.7f' %(m)).grid(row = 1, column = 1)
-    tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.7f' %(sigma_m)).grid(row = 1, column = 2)
-    tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.4f' %(b)).grid(row = 2, column = 1)
-    tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.4f' %(sigma_b)).grid(row = 2, column = 2)
+        Placeholder2 = (sum(xvalues))**2
+        sigma = sigma / (len(xvalues) - 2) 
 
-    tk.Button(TabList[num][1].LinearRegressionFrame, text = 'Commit Regression').grid(row = 3, column = 0)
-    tk.Button(TabList[num][1].LinearRegressionFrame, text = 'Clear Linear Regression').grid(row = 3, column = 1)
+        sigma_m = math.sqrt(sigma / ( Placeholder1 - (Placeholder2/len(xvalues))))
+        sigma_b = math.sqrt((sigma * Placeholder1)/((len(xvalues) * Placeholder1) - Placeholder2))
+
+        tk.Label(TabList[num][1].LinearRegressionFrame, text = '(MeV)').grid(row = 0, column = 0)
+        tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Values').grid(row = 0, column = 1)
+        tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Uncertainty').grid(row = 0, column = 2)
+        tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Slope').grid(row = 1, column = 0)
+        tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Intercept').grid(row = 2, column = 0)
+
+        tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.7f' %(m)).grid(row = 1, column = 1)
+        tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.7f' %(sigma_m)).grid(row = 1, column = 2)
+        tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.4f' %(b)).grid(row = 2, column = 1)
+        tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.4f' %(sigma_b)).grid(row = 2, column = 2)
+
+        tk.Button(TabList[num][1].LinearRegressionFrame, text = 'Commit Regression').grid(row = 3, column = 0)
+        tk.Button(TabList[num][1].LinearRegressionFrame, text = 'Clear Regression', 
+                  command = lambda: ClearWidget('Linear',0)).grid(row = 3, column = 1, columnspan = 2)
 
 ###############################################################################
 # Este e o algoritmo que determina a distancia quadrada minima entre pontos
@@ -330,7 +359,7 @@ def Threshold_Alg():
 
             if current_peak:
 
-                if len(current_peak) > 5: #Nota Importante abaixo
+                if len(current_peak) > 3: #Nota Importante abaixo
                     yaxis.append(max(current_peak))
                     xaxis.append(counter + current_peak.index(max(current_peak)))
                     counter = counter + len(current_peak)
@@ -399,6 +428,13 @@ def Plot(File, Name):
 
     Data.close()
 
+    if TabTracker[num] < 0:
+        Title = 'Calibration Trial ' + str(-TabTracker[num])
+
+    elif TabTracker[num] > 0: 
+        Title = 'Material Trial ' + str(TabTracker[num])
+
+
     figure = Figure(figsize = (6,4), dpi = 100) #A figura contem o grafico
     figure_canvas = FigureCanvasTkAgg(figure, TabList[num][1].GraphicFrame) #A class FigureCanvasTkAgg
     #liga o matplotlib ao tkinter
@@ -409,7 +445,7 @@ def Plot(File, Name):
     #Aqui inicia-se o grafico com os dados e os eixos
     axes = figure.add_subplot() 
     axes.plot(Channel, Counts, 'D')
-    axes.set_title("Calibration Run")
+    axes.set_title(Title)
     axes.set_xlabel('Channel')
     axes.set_ylabel('Counts')
 
@@ -425,7 +461,7 @@ def FileReader():
 
     domain = (('text files', '*.mca'), ('all files', '*.*'))
     filename = fd.askopenfilename(title = 'Open a file', initialdir = '.', filetypes = domain)
-    ###########INSERIR JANELA QUE NAO PERMITE FICHEIROS QUE NAO SEJAM MCA 
+    
     OpenFile = open(filename, 'r')
     file = OpenFile.read()
     OpenFile.close()
@@ -507,10 +543,7 @@ def Method(*args):
                   command = Unchecked_Results).grid(row = 4, column = 0)
         tk.Button(TabList[num][1].AlgFrame, text = 'Remove All',
                   command = lambda: ClearWidget('Results', 1)).grid(row = 4, column = 1)
-        tk.Label(TabList[num][1].AlgFrame,
-                 text = 'Channel: ').grid(row = 5, column = 0)
-        tk.Label(TabList[num][1].AlgFrame,
-                 text = 'Counts: ').grid(row = 5, column = 1)
+     
 
     elif decider == 'Threshold Input':  #Definicao dos controlos para o algoritmo Threshold_Alg
         tk.Label(TabList[num][1].AlgFrame, 
@@ -592,6 +625,9 @@ class Warnings:
 # muda a forma de tabs de calibracao e materiais
 ############################################################################
 class Tabs:
+
+    Counter_Mat = 0
+    Counter_Calib = 0
 
     def First_Tabs(self):
 
@@ -726,7 +762,6 @@ class Tabs:
             self.SourceOptionsFrame = tk.Frame(self.SourceFrame, borderwidth = 0)
             self.SourceOptionsFrame.grid(row = 2, columnspan = 2)
             self.LinearRegressionFrame = tk.Frame(self.SourceFrame, borderwidth = 1)
-            self.LinearRegressionFrame.grid(row = 3, columnspan = 2)
             
         
         if choice == 1:
@@ -747,21 +782,31 @@ class Tabs:
             
 
         elif num == 1:
-            
+
+            Tabs.Counter_Calib -= 1
+            TabTracker.append(Tabs.Counter_Calib)
             TabList[Notebook.value][1].AnalysisTab(1)
-            Notebook.notebook.insert(index, TabList[Notebook.value][0], text = "Calibration Trial")
+            Notebook.notebook.insert(index, TabList[Notebook.value][0], text = "Calibration Trial " + str(-Tabs.Counter_Calib))
             Notebook.notebook.select(index)
             Notebook.value = Notebook.value + 1
-            wng.warning.destroy()
+            try:
+                wng.warning.destroy()
+            except:
+                ()
 
             
         elif num == 2:
 
+            Tabs.Counter_Mat += 1
+            TabTracker.append(Tabs.Counter_Mat)
             TabList[Notebook.value][1].AnalysisTab(2)
-            Notebook.notebook.insert(index, TabList[Notebook.value][0], text = "Material Trial")
+            Notebook.notebook.insert(index, TabList[Notebook.value][0], text = "Material Trial " + str(Tabs.Counter_Mat))
             Notebook.notebook.select(index)
             Notebook.value = Notebook.value + 1
-            wng.warning.destroy()
+            try:
+                wng.warning.destroy()
+            except:
+                ()
 
 ############ Variaveis Estruturais #############################
 
@@ -772,19 +817,19 @@ wng = Warnings()
 
 ############## Tabs variaveis para serem criadas ###############
 
-tab1 = tk.Frame(Notebook.notebook)
-tab2 = tk.Frame(Notebook.notebook)
-tab3 = tk.Frame(Notebook.notebook)
-tab4 = tk.Frame(Notebook.notebook)
-tab5 = tk.Frame(Notebook.notebook)
-tab6 = tk.Frame(Notebook.notebook)
-tab7 = tk.Frame(Notebook.notebook)
-tab8 = tk.Frame(Notebook.notebook)
-tab9 = tk.Frame(Notebook.notebook)
-tab10 = tk.Frame(Notebook.notebook)
-tab11 = tk.Frame(Notebook.notebook)
-tab12 = tk.Frame(Notebook.notebook)
-tab13 = tk.Frame(Notebook.notebook)
+tab1 = tk.Frame(Notebook.notebook, bg = 'dark grey')
+tab2 = tk.Frame(Notebook.notebook, bg = 'dark grey')
+tab3 = tk.Frame(Notebook.notebook, bg = 'dark grey')
+tab4 = tk.Frame(Notebook.notebook, bg = 'dark grey')
+tab5 = tk.Frame(Notebook.notebook, bg = 'dark grey')
+tab6 = tk.Frame(Notebook.notebook, bg = 'dark grey')
+tab7 = tk.Frame(Notebook.notebook, bg = 'dark grey')
+tab8 = tk.Frame(Notebook.notebook, bg = 'dark grey')
+tab9 = tk.Frame(Notebook.notebook, bg = 'dark grey')
+tab10 = tk.Frame(Notebook.notebook, bg = 'dark grey')
+tab11 = tk.Frame(Notebook.notebook, bg = 'dark grey')
+tab12 = tk.Frame(Notebook.notebook, bg = 'dark grey')
+tab13 = tk.Frame(Notebook.notebook, bg = 'dark grey')
 
 tabtype1 = Tabs()
 tabtype2 = Tabs()
@@ -809,6 +854,8 @@ TabList = [
     [tab11, tabtype11, "Temp\Data11.txt", "Temp\Result11.txt"], [tab12, tabtype12, "Temp\Data12.txt", "Temp\Result12.txt"], 
     [tab13, tabtype13, "Temp\Data13.txt", "Temp\Result13.txt"]
 ]
+
+TabTracker = []
 
 ##############################################################################################
 try: 
