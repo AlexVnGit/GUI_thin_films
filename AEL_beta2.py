@@ -55,15 +55,20 @@ def ClearWidget(Frame, parameter):
         if parameter == 1: #Porque o search do algoritmo de selecao manual reconstroi os widgets
                            # da frame sempre que se encontra um novo ponto, e necessario
                            # configurar o caso onde ha reset dos dados e o caso onde nao ha reset
-            try:
+            if os.path.isfile(TabList[num][3]) == True:
                 os.remove(TabList[num][3])
-            except:
-                ()
 
     elif Frame == 'Source':
         for widget in TabList[num][1].SourceOptionsFrame.winfo_children():
             widget.destroy()
         TabList[num][1].SourceOptionsFrame.grid_remove()
+
+    elif Frame == 'Popup':
+        for widget in wng.warning.winfo_children():
+            widget.destroy()
+        TabList[num][1].Measure.clear()
+        wng.warning.destroy()
+        
 
     elif Frame == 'Linear':
         for widget in TabList[num][1].LinearRegressionFrame.winfo_children():
@@ -91,18 +96,86 @@ def ClearWidget(Frame, parameter):
 
         for widget in TabList[num][1].SourceOptionsFrame.winfo_children():
             widget.destroy()
-            TabList[num][1].SourceOptionsFrame.grid_remove()
+        widget = 0
+        TabList[num][1].SourceOptionsFrame.grid_remove()
 
         for widget in TabList[num][1].LinearRegressionFrame.winfo_children():
             widget.destroy()
-            TabList[num][1].LinearRegressionFrame.grid_remove()
+        widget = 0
+        TabList[num][1].LinearRegressionFrame.grid_remove()
 
         if parameter == 1:
-            try:
+            if os.path.isfile(TabList[num][3]) == True:
                 os.remove(TabList[num][3])
-            except:
-                ()     
 
+def Calib_Choice():
+
+    num = Current_Tab()
+
+    for i in range(0, len(TabList[num][1].Regression_List)):
+            TabList[num][1].Regression_List[i].set(-1)
+
+    for i in range(0, len(TabTracker)):
+        if os.path.isfile('Temp\Calib_Results' + str(-TabTracker[i]) + '.txt') == True:
+            TabList[num][1].Measure.append(TabTracker[i])
+
+    if not TabList[num][1].Measure:
+        wng.popup('No Linear Regressions detected')
+        tk.Label(wng.warning, text = 'No linear Regressions were detected.\n\n' + 
+                 'Please Perform a Calibration Trial before calculating the Film\'s Thickness.\n\n').pack()
+        tk.Button(wng.warning, text = 'Return', command = lambda: wng.warning.destroy()).pack()
+
+    else:
+
+        wng.popup('Linear Regression Selection Menu')
+        tk.Label(wng.warning, text = 'Please Select a Calibration Trial \n' +
+                 'Choosing more than one calibration will average the slopes and intercepts.\n\n').pack()
+
+        for i in range(0, len(TabList[num][1].Measure)):
+            button_Choice = tk.Checkbutton(wng.warning, 
+                                           text = 'Linear Regression of Calibration Trial ' +
+                                             str(-TabList[num][1].Measure[i]),
+                                            variable = TabList[num][1].Regression_List[i], 
+                                            onvalue = 1, offvalue = -1)
+            button_Choice.pack()
+
+        tk.Button(wng.warning, text = 'Return', command = lambda: ClearWidget('Popup',0)).pack()
+
+def Final_Calculation():
+
+    num = Current_Tab()
+
+    """ i = 0
+    avg_slope = 0
+    avg_int = 0
+    Calib_Peaks = []
+    Mat_Peaks = []
+
+    Material = TabList[num][1].Mat.get()
+    Calib = 0
+
+    for i in range(0, len(TabList[num][1].Regression_List)):
+
+        if TabTracker[i] < 0:
+            Trial = i + 1
+
+        if TabList[num][1].Regression_List[i].get() != -1:
+
+            Calib = TabList[num][1].Regression_List[i].get()
+
+            if os.path.isfile('Temp\Calib_Results' + str(Calib + 1) + '.txt') == True:
+                with open('Temp\Calib_Results' + str(Calib + 1) + '.txt', 'r') as my_file:
+                    Linear = [float(line) for line in my_file]
+
+    OpenFile = open(TabList[Trial][3], 'r')
+    lines = OpenFile.read()
+    OpenFile.close()
+    lines = lines.splitlines()  
+    Results = [[0 for i in range(1)]for j in range(len(lines))]
+
+    avg_slope = Linear[0]
+    avg_int = [2]
+ """
 #########################################################################################
 # Recebe os resultados dos algoritmos e mostra no GUI
 ########################################################################################
@@ -138,7 +211,7 @@ def ResultManager():
                 text = '\t Counts: ' + str(Results[j][1])).grid(row = j , column = 1)
         
 ##########################################################################################
-# Retira os resultados que nao estao checked e atualiza o txt dos resultados
+# Retira os resultados que nao estao checked e atualiza o txt dos resultados BUG ENCONTRADO
 ##########################################################################################        
 def Unchecked_Results():
     num = Current_Tab()
@@ -271,6 +344,15 @@ def Linearize():
         sigma_m = math.sqrt(sigma / ( Placeholder1 - (Placeholder2/len(xvalues))))
         sigma_b = math.sqrt((sigma * Placeholder1)/((len(xvalues) * Placeholder1) - Placeholder2))
 
+        
+        
+        with open('Temp\Calib_Results' + str(-TabTracker[num]) + '.txt', 'w') as my_file:
+            my_file.write('%.7f' %(m) + '\n')
+            my_file.write('%.7f' %(sigma_m) + '\n')
+            my_file.write('%.7f' %(b) + '\n')
+            my_file.write('%.7f' %(sigma_b))
+
+
         tk.Label(TabList[num][1].LinearRegressionFrame, text = '(MeV)').grid(row = 0, column = 0)
         tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Values').grid(row = 0, column = 1)
         tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Uncertainty').grid(row = 0, column = 2)
@@ -282,9 +364,8 @@ def Linearize():
         tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.4f' %(b)).grid(row = 2, column = 1)
         tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.4f' %(sigma_b)).grid(row = 2, column = 2)
 
-        tk.Button(TabList[num][1].LinearRegressionFrame, text = 'Commit Regression').grid(row = 3, column = 0)
         tk.Button(TabList[num][1].LinearRegressionFrame, text = 'Clear Regression', 
-                  command = lambda: ClearWidget('Linear',0)).grid(row = 3, column = 1, columnspan = 2)
+                  command = lambda: ClearWidget('Linear',0)).grid(row = 3, column = 0, columnspan = 3)
 
 ###############################################################################
 # Este e o algoritmo que determina a distancia quadrada minima entre pontos
@@ -639,11 +720,25 @@ class Tabs:
         
         ########### As frames principais - Os resultados e a frame de adicionar
         self.CRFrame = tk.Frame(self.notebook, bg = 'dark grey')
-        self.PlusFrame = tk.Frame(self.notebook)
+        self.PlusFrame = tk.Frame(self.notebook, bg = 'dark grey')
+        
         
         ############# Aqui adicionam-se as frames iniciadas acima
         self.notebook.add(self.CRFrame, text = 'Final Results')
         self.notebook.add(self.PlusFrame, text = '+')
+
+        ############# Frames onde irao ser inseridos os resultados finais
+        
+
+        self.Calib_Resut = tk.Frame(self.CRFrame, borderwidth = 5, relief = 'ridge')
+        self.Calib_Resut.grid(row = 0, column = 0, pady = 10, padx = 30, sticky = 'ns', rowspan = 2)
+
+        self.Mat_Resut = tk.Frame(self.CRFrame, borderwidth = 5, relief = 'ridge')
+        self.Mat_Resut.grid(row = 0, column = 1, pady = 10, padx = 30, sticky = 'ns')
+
+        self.Final_Result = tk.Frame(self.CRFrame, borderwidth = 5, relief = 'ridge')
+        self.Final_Result.grid(row = 1, column = 1, pady = 10, padx = 30, sticky = 'ns')
+        
 
         ########### Variavel para contar o numero de separadores 
         self.value = 0
@@ -670,10 +765,10 @@ class Tabs:
         self.SourceFrame.grid(column = 1, row = 0, sticky = "ne", pady = 5)
 
         self.AlgFrame = tk.Frame(self.DataFrame, borderwidth = 0)
-        self.AlgFrame.grid(row = 2, columnspan = 2)
+        self.AlgFrame.grid(row = 2, columnspan = 2, pady = 5)
        
         self.ResultFrame = tk.Frame(self.DataFrame)
-        self.ResultFrame.grid(row = 3, columnspan = 2, pady = 5)
+        
         
         ##################################### Variaveis para cada instance ##########################
 
@@ -729,9 +824,48 @@ class Tabs:
             self.Mat = tk.StringVar()
             self.Mat.set('Select Material')
 
+            self.Regression1 = tk.DoubleVar()
+            self.Regression1.set(-1)
+            self.Regression2 = tk.DoubleVar()
+            self.Regression2.set(-1)
+            self.Regression3 = tk.DoubleVar()
+            self.Regression3.set(-1)
+            self.Regression4 = tk.DoubleVar()
+            self.Regression4.set(-1)
+            self.Regression5 = tk.DoubleVar()
+            self.Regression5.set(-1)
+            self.Regression6 = tk.DoubleVar()
+            self.Regression6.set(-1)
+            self.Regression7 = tk.DoubleVar()
+            self.Regression7.set(-1)
+            self.Regression8 = tk.DoubleVar()
+            self.Regression8.set(-1)
+            self.Regression9 = tk.DoubleVar()
+            self.Regression9.set(-1)
+            self.Regression10 = tk.DoubleVar()
+            self.Regression10.set(-1)
+
+            self.Regression_List = [self.Regression1, self.Regression2, self.Regression3, self.Regression4, 
+                                    self.Regression5, self.Regression6, self.Regression7, self.Regression8,
+                                    self.Regression9, self.Regression10]
+            
+            self.Measure = []
+
+            self.Calib_Sel_Frame = tk.Frame(self.SourceFrame, borderwidth = 0)
+            self.Calib_Sel_Frame.grid(row = 4, columnspan = 2)
+
             tk.Label(self.SourceFrame, text = 'Material of Film Used: ').grid(row = 0, columnspan = 2)
             Materials = ["Al", "Au", "Pb", "PMMA", "Sn"]
             tk.OptionMenu(self.SourceFrame, self.Mat, *Materials ).grid(row = 1, columnspan = 2)
+
+            
+            tk.Label(self.SourceFrame, text = 'Choose the Calibration Regression \n'+ 
+                     'Make sure the Peaks in the Calibration ' + 
+                     'match the Peaks found for this trial').grid(row = 2, columnspan = 2, pady = 5)
+            tk.Button(self.SourceFrame, text = 'Calibration Trial', 
+                      command = Calib_Choice).grid(row = 3, column = 0)
+            tk.Button(self.SourceFrame, text = 'Calculate Thickness', 
+                      command = Final_Calculation).grid(row = 3, column = 1)
 
         def CalibTab(self):
 
@@ -858,21 +992,17 @@ TabList = [
 TabTracker = []
 
 ##############################################################################################
-try: 
-    os.mkdir('Temp') # Pasta onde serao guardados os ficheiros temporarios
-except:
-    ()  # No caso de haver ja uma pasta Temp, o programa prossegue
+os.mkdir('Temp') # Pasta onde serao guardados os ficheiros temporarios
+
 
 window.run()
 
 for i in range(Notebook.value):
-    try:
+    if os.path.isfile(TabList[i][2]) == True:
         os.remove(TabList[i][2]) # Apaga os dados adquiridos quando se faz plot
-    except:
-        ()
-    try:
+    if os.path.isfile(TabList[i][3]) == True:
         os.remove(TabList[i][3]) # Apaga os dados dos resultados dos algoritmos
-    except:
-        ()
+    if os.path.isfile('Temp\Calib_Results' + str(i+1) + '.txt') == True:
+        os.remove('Temp\Calib_Results' + str(i+1) + '.txt') # Apaga os resultados das regressoes lineares
 
 os.rmdir('Temp') # Apaga a pasta Temp
