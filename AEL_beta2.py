@@ -66,28 +66,26 @@ def ClearWidget(Frame, parameter):
     elif Frame == 'Popup':
         for widget in wng.warning.winfo_children():
             widget.destroy()
-        TabList[num][1].Measure.clear()
         wng.warning.destroy()
-        
 
     elif Frame == 'Linear':
         for widget in TabList[num][1].LinearRegressionFrame.winfo_children():
             widget.destroy()
         TabList[num][1].LinearRegressionFrame.grid_remove()
 
+        if parameter == 1:
+            os.remove(TabList[num][4])
 
     elif Frame == 'Everything':
         for widgets in TabList[num][1].GraphicFrame.winfo_children():
             widgets.destroy()         # Este 'for' destroi grafcos antigos e constoi novos
         widget = 0
         TabList[num][1].GraphicFrame.grid_remove()
-
         
         for widget in TabList[num][1].AlgFrame.winfo_children(): 
             widget.destroy() #Destroi a opcao de widgets anteriores dos algoritmos
         widget = 0
         TabList[num][1].AlgFrame.grid_remove()
-
 
         for widget in TabList[num][1].ResultFrame.winfo_children():
             widget.destroy()         # Este 'for' destroi grafcos antigos e constoi novos
@@ -108,74 +106,203 @@ def ClearWidget(Frame, parameter):
             if os.path.isfile(TabList[num][3]) == True:
                 os.remove(TabList[num][3])
 
+############################################################################################
+# Funcao que le os ficheiros e devolve listas. Estas podem ser 2d ou 1d, podem ter separadores
+# diferentes (entre as colunas) e pode devolver as listas como strings, floats ou ints
+############################################################################################
+def File_Reader(Document, Separator, Decimal):
+
+    OpenFile = open(Document, 'r')
+    lines = OpenFile.read()
+    OpenFile.close()
+    lines = lines.splitlines()
+
+    if Separator != '0':
+        Results = [[0 for i in range(1)]for j in range(len(lines))]
+        i = 0
+
+        for line in lines:
+            Results[i] = (line.split(Separator))
+            i += 1
+
+        i = 0
+        j = 0
+
+        for j in range(0, len(lines)):
+            for i in range(0, 2):
+
+                if Decimal == 'Yes':
+                    Results[j][i] = float(Results[j][i])
+
+                elif Decimal == 'No':
+                    Results[j][i] = int(Results[j][i])
+
+        return Results
+    
+    else:
+
+        i = 0
+
+        if Decimal == 'String':
+
+            return lines
+        
+        else:
+
+            for i in range(0, len(lines)):
+
+                if Decimal == 'Yes':
+                        lines[i] = float(lines[i])
+
+                elif Decimal == 'No':
+                    lines[i] = int(lines[i])
+
+            return lines
+
+###########################################################################################
+# Permite a escolha de regressoes lineares por parte do utilizador
+###########################################################################################
 def Calib_Choice():
 
     num = Current_Tab()
+    Measure = []
 
     for i in range(0, len(TabList[num][1].Regression_List)):
             TabList[num][1].Regression_List[i].set(-1)
-
+    # Este for previne as escolhas antigas de interferir com a nova selecao de regressoes
+    
     for i in range(0, len(TabTracker)):
-        if os.path.isfile('Temp\Calib_Results' + str(-TabTracker[i]) + '.txt') == True:
-            TabList[num][1].Measure.append(TabTracker[i])
 
-    if not TabList[num][1].Measure:
+        if TabTracker[i] < 0: # Certifica que so le ficheiros com regressoes lineares
+
+            if os.path.isfile(TabList[i][4]) == True:
+                Measure.append(TabTracker[i])
+
+    # Neste ciclo, o measure regista quantas tabs de calibracao tem uma regressao linear,
+    # ja que o tabtracker identifica as tabs de calibracao como sendo negativas,
+    # o measure tera sempre valores entre -1 e -10
+
+    if not Measure:
+
         wng.popup('No Linear Regressions detected')
         tk.Label(wng.warning, text = 'No linear Regressions were detected.\n\n' + 
                  'Please Perform a Calibration Trial before calculating the Film\'s Thickness.\n\n').pack()
         tk.Button(wng.warning, text = 'Return', command = lambda: wng.warning.destroy()).pack()
 
-    else:
+    # No caso do Measure estar vario, aparece um aviso que nenhuma regressao linear foi efetuada
+
+    
+    else: # Caso contrario, entra o popup para selecionar quais as regressoes a utilizar
 
         wng.popup('Linear Regression Selection Menu')
         tk.Label(wng.warning, text = 'Please Select a Calibration Trial \n' +
                  'Choosing more than one calibration will average the slopes and intercepts.\n\n').pack()
 
-        for i in range(0, len(TabList[num][1].Measure)):
+        for i in range(0, len(Measure)):
             button_Choice = tk.Checkbutton(wng.warning, 
                                            text = 'Linear Regression of Calibration Trial ' +
-                                             str(-TabList[num][1].Measure[i]),
+                                             str(-Measure[i]),
                                             variable = TabList[num][1].Regression_List[i], 
-                                            onvalue = 1, offvalue = -1)
+                                            onvalue = -Measure[i], offvalue = -1)
             button_Choice.pack()
 
-        tk.Button(wng.warning, text = 'Return', command = lambda: ClearWidget('Popup',0)).pack()
+        # Neste ciclo, por cada regressao linear efetuada, o utilizador pode esolher utilizar uma ou
+        # mais, para a calibracao. A Regression_List guarda valores 1 ou -1 sendo que o indice desta
+        # lista, e utilizado depois nos calculos finais
 
+        tk.Button(wng.warning, text = 'Return', command = lambda: ClearWidget('Popup', 0)).pack()
+
+################################################################################################
+# Calcula a espessura por cada pico
+################################################################################################
 def Final_Calculation():
 
     num = Current_Tab()
+    Material_choice = TabList[num][1].Mat.get() # Determina qual o ficheiro do material a ler
+    Material_choice = Material_choice + '.txt'
 
-    """ i = 0
-    avg_slope = 0
-    avg_int = 0
-    Calib_Peaks = []
-    Mat_Peaks = []
+    slope = 0
+    intercept = 0
+    points = []
+    regressions_index = []
+    material_data = File_Reader(Material_choice, '|', 'Yes') #Daqui obtemos a lista que ira guardar
+    # as energias e o stopping power do material em uso
 
-    Material = TabList[num][1].Mat.get()
-    Calib = 0
-
+# Este ciclo determina a tab de calibracao cuja regressao foi selecionada para uso
+# o regressions_index guarda o indice do Tab Tracker
+# Com este valor, podemos aceder ao indice do TabList para obter todos os dados que queiramos
     for i in range(0, len(TabList[num][1].Regression_List)):
-
-        if TabTracker[i] < 0:
-            Trial = i + 1
-
         if TabList[num][1].Regression_List[i].get() != -1:
+            regressions_index.append(TabTracker.index(-TabList[num][1].Regression_List[i].get()))
 
-            Calib = TabList[num][1].Regression_List[i].get()
+    i = 0
 
-            if os.path.isfile('Temp\Calib_Results' + str(Calib + 1) + '.txt') == True:
-                with open('Temp\Calib_Results' + str(Calib + 1) + '.txt', 'r') as my_file:
-                    Linear = [float(line) for line in my_file]
+    points = [[0 for i in range(0)]for j in range(len(regressions_index))]
 
-    OpenFile = open(TabList[Trial][3], 'r')
-    lines = OpenFile.read()
-    OpenFile.close()
-    lines = lines.splitlines()  
-    Results = [[0 for i in range(1)]for j in range(len(lines))]
 
-    avg_slope = Linear[0]
-    avg_int = [2]
- """
+    for i in range(0, len(regressions_index)):
+        Aux_Channel = File_Reader(TabList[regressions_index[i]][3], ',', 'No')
+        Aux_Regression = File_Reader(TabList[regressions_index[i]][4], '0', 'Yes')
+
+        Temp = sorted(Aux_Channel)
+
+        slope = Aux_Regression[0] + slope
+        intercept = Aux_Regression[2] + intercept
+
+        for j in range(0, len(Aux_Channel)):
+            points[i].append(Temp[j][0])
+
+    peaks = len(Aux_Channel)
+    slope = slope / len(regressions_index)
+    intercept = intercept / len(regressions_index)
+
+    i = 0
+    j = 0
+
+    Temp.clear()
+    Aux_Channel.clear()
+    Aux_Regression.clear()
+
+    Aux_Regression = File_Reader(TabList[num][3], ',', 'No') # Analise dos picos de materiais
+    Aux_Channel = sorted(Aux_Regression)
+    
+
+    for i in range(0, len(regressions_index)):
+        for j in range(0, peaks):
+
+            if i == 0:
+                Temp.append(points[i][j])
+
+            else:
+                Temp[j] = Temp[j] + points[i][j]
+
+    i = 0
+    points.clear()
+
+    for i in range(0, peaks):
+        Temp[i] = Temp[i] / len(regressions_index)
+        points.append((slope * Aux_Channel[i][0]) + intercept )    
+        
+
+    i = 0
+    j = 0
+    summed_values = 0
+    Aux_Channel.clear()
+    
+    for j in range(0, peaks):
+        for i in range(1, len(material_data)):
+            if material_data[i][0] >= points[j] and material_data[i][0] <= Temp[j]:
+
+                stopping_power = material_data[i][1] * material_data[0][1]
+                summed_values = summed_values + (0.001 / stopping_power)
+
+        Aux_Channel.append(summed_values)
+        summed_values = 0
+    
+    print(Aux_Channel)
+        
+
+
 #########################################################################################
 # Recebe os resultados dos algoritmos e mostra no GUI
 ########################################################################################
@@ -186,40 +313,40 @@ def ResultManager():
     ClearWidget('Results', 0)
     TabList[num][1].ResultFrame.grid(row = 3, columnspan = 2, pady = 5)
 
-    OpenFile = open(TabList[num][3], 'r')
+    """ OpenFile = open(TabList[num][3], 'r')
     lines = OpenFile.read()
     OpenFile.close()
     lines = lines.splitlines()  
     Results = [[0 for i in range(1)]for j in range(len(lines))]
-    i = 0
+    i = 0 """
 
-    for line in lines:
+    values = File_Reader(TabList[num][3], ',', 'No')
+
+    """ for line in lines:
         Results[i] = (line.split(','))
-        i += 1
+        i += 1 """
     
-    for j in range(0, len(lines)):
+    for j in range(0, len(values)):
 
-        for i in range(0, 2):
-            Results[j][i] = int(Results[j][i])
+        """ for i in range(0, 2):
+            Results[j][i] = int(Results[j][i]) """
 
         Result_Button = tk.Checkbutton(TabList[num][1].ResultFrame, variable = TabList[num][1].Var_Data[j],
                 onvalue = 1, offvalue = -1,
-                text = 'Channel: ' + str(Results[j][0]))
+                text = 'Channel: ' + str(values[j][0]))
         Result_Button.grid(row = j , column = 0)
         Result_Button.select()
         tk.Label(TabList[num][1].ResultFrame, 
-                text = '\t Counts: ' + str(Results[j][1])).grid(row = j , column = 1)
+                text = '\t Counts: ' + str(values[j][1])).grid(row = j , column = 1)
         
 ##########################################################################################
-# Retira os resultados que nao estao checked e atualiza o txt dos resultados BUG ENCONTRADO
+# Retira os resultados que nao estao checked e atualiza o txt dos resultados 
 ##########################################################################################        
 def Unchecked_Results():
     num = Current_Tab()
     i = 0
     j = 0
     k = 0
-
-
     Eraser = []
     Aux = []
 
@@ -227,23 +354,28 @@ def Unchecked_Results():
 
         Eraser.append(widget)
 
-    OpenFile = open(TabList[num][3], 'r')
+    """ OpenFile = open(TabList[num][3], 'r')
     lines = OpenFile.read()
     OpenFile.close()
-    lines = lines.splitlines()
+    lines = lines.splitlines() """
+
+    values = File_Reader(TabList[num][3], '0', 'String')
     
     for i in range(len(TabList[num][1].Var_Data)):
 
         if TabList[num][1].Var_Data[i].get() == 1:
-            Aux.append(lines[k])
+            Aux.append(values[k])
     
         elif TabList[num][1].Var_Data[i].get() == -1:
+
+            TabList[num][1].Var_Data[i].set(0)
+
             Eraser[j].destroy()
             Eraser[j + 1].destroy()
-            TabList[num][1].Var_Data[i].set(0)
 
         elif TabList[num][1].Var_Data[i].get() == 0:
             k = k - 1
+            j -= 2
 
         j += 2
         k += 1
@@ -262,27 +394,32 @@ def Unchecked_Results():
             file.write(Aux[i] + '\n')
 
 #########################################################################################
-# Linearizes the results with the radiation sources
+# Faz a regressao linear dos resultados
 #########################################################################################
 def Linearize():
 
     num = Current_Tab()
     
-    OpenFile = open(TabList[num][3], 'r')
+    """ OpenFile = open(TabList[num][3], 'r')
     lines = OpenFile.read()
     OpenFile.close()
     lines = lines.splitlines()  
-    Results = [[0 for i in range(1)]for j in range(len(lines))]
+    Results = [[0 for i in range(1)]for j in range(len(lines))] """
     
     i = 0
     xaxis = []
     yaxis = []
 
-    for line in lines:
+    values = File_Reader(TabList[num][3], ',', 'No')
+
+    """ for line in lines:
         Results[i] = (line.split(','))
         xaxis.append(int(Results[i][0])) 
 
-        i += 1
+        i += 1 """
+
+    for i in range(0, len(values)):
+        xaxis.append(values[i][0])
 
     i = 0
 
@@ -344,9 +481,7 @@ def Linearize():
         sigma_m = math.sqrt(sigma / ( Placeholder1 - (Placeholder2/len(xvalues))))
         sigma_b = math.sqrt((sigma * Placeholder1)/((len(xvalues) * Placeholder1) - Placeholder2))
 
-        
-        
-        with open('Temp\Calib_Results' + str(-TabTracker[num]) + '.txt', 'w') as my_file:
+        with open(TabList[num][4], 'w') as my_file:
             my_file.write('%.7f' %(m) + '\n')
             my_file.write('%.7f' %(sigma_m) + '\n')
             my_file.write('%.7f' %(b) + '\n')
@@ -365,7 +500,7 @@ def Linearize():
         tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.4f' %(sigma_b)).grid(row = 2, column = 2)
 
         tk.Button(TabList[num][1].LinearRegressionFrame, text = 'Clear Regression', 
-                  command = lambda: ClearWidget('Linear',0)).grid(row = 3, column = 0, columnspan = 3)
+                  command = lambda: ClearWidget('Linear', 1 )).grid(row = 3, column = 0, columnspan = 3)
 
 ###############################################################################
 # Este e o algoritmo que determina a distancia quadrada minima entre pontos
@@ -375,8 +510,10 @@ def ManSelec_Alg(Valuex, Valuey):
 
     num = Current_Tab()
 
-    with open(TabList[num][2], "r") as file:   #Leitura do ficheiro
-        Counts = [int(line) for line in file]   #Extracao dos counts
+    Counts = File_Reader(TabList[num][2], '0', 'No')
+
+    """ with open(TabList[num][2], "r") as file:   #Leitura do ficheiro
+        Counts = [int(line) for line in file]   #Extracao dos counts """
 
     AuxList = []   #Lista para guardar minimos quadrados
 
@@ -406,9 +543,11 @@ def Threshold_Alg():
 
     num = Current_Tab()
 
+    Counts = File_Reader(TabList[num][2], '0', 'No')
+
 #Use "with open" it will close the file after reading, no need to close it manually
-    with open(TabList[num][2], "r") as file:
-        Counts = [int(line) for line in file]
+    """ with open(TabList[num][2], "r") as file:
+        Counts = [int(line) for line in file] """
 
     Threshold = TabList[num][1].Algorithm.get()
     yaxis = []
@@ -416,6 +555,7 @@ def Threshold_Alg():
     current_peak = []
     counter = 0
     xaxis = []
+    i = 0
 
 #Just iterate of the values of the list itself. Each "count" is an element of Counts
     for count in (Counts):
@@ -424,9 +564,10 @@ def Threshold_Alg():
        #add the total sum of the area under the peak 
        # (this may even be useful for FWHM calculations).
        
-        if count > Threshold:
-            current_peak_counts += count
-            current_peak.append(count)
+        if count > Threshold and i > 60:
+
+                current_peak_counts += count
+                current_peak.append(count)
 
         else:
 
@@ -438,19 +579,18 @@ def Threshold_Alg():
             #(count is now <= Threshold) and we should save the max value of
             #current_peak and put everything to zero (aka move to the next peak)
 
-            if current_peak:
+            if current_peak and len(current_peak) > 3:
 
-                if len(current_peak) > 3: #Nota Importante abaixo
                     yaxis.append(max(current_peak))
                     xaxis.append(counter + current_peak.index(max(current_peak)))
                     counter = counter + len(current_peak)
                     current_peak_counts = 0
                     current_peak = []
                 
-# O parametro len(current_peak) > 7, serve para evitar um
-# a falha do algoritmo. Por vezes,
-# no algoritmo, ele considera picos com poucos pontos, o que traz como consequencia a consideracao
-# de picos que sao apenas oscilacoes da estatistica.
+        i += 1
+
+
+
 
     if os.path.isfile(TabList[num][3]) == True:
         with open(TabList[num][3], 'a') as results:
@@ -538,15 +678,17 @@ def Plot(File, Name):
 ##############################################################################
 #Esta funcao ira ler o ficheiro input.
 ##############################################################################
-def FileReader(): 
+def DataUploader(): 
 
     domain = (('text files', '*.mca'), ('all files', '*.*'))
     filename = fd.askopenfilename(title = 'Open a file', initialdir = '.', filetypes = domain)
     
-    OpenFile = open(filename, 'r')
+    """ OpenFile = open(filename, 'r')
     file = OpenFile.read()
     OpenFile.close()
-    file = file.splitlines()
+    file = file.splitlines() """
+
+    file = File_Reader(filename, '0', 'string')
     Plot(file, filename)
 
 ##############################################################################
@@ -588,6 +730,8 @@ def SourceReader(*args):
     if Alpha == '226Ra.txt':
         TabList[num][1].DecayList[6].set(-1)
 
+
+    Decay = File_Reader 
     with open(Alpha, 'r') as file:
         Decay = [float(line) for line in file]
 
@@ -661,7 +805,7 @@ class Skeleton:
             # O tipico File Menu. Hao de haver mais opcoes no futuro
         __file_menu = tk.Menu(self.menu, tearoff = False) 
         self.menu.add_cascade(label = 'File', menu = __file_menu)
-        __file_menu.add_command(label = 'Upload Plotting Data', command = FileReader)
+        __file_menu.add_command(label = 'Upload Plotting Data', command = DataUploader)
         __file_menu.add_command(label = 'Remove Current Plotting Data',
                                 command = lambda: ClearWidget('Graphic', 0))
         __file_menu.add_command(label = 'Remove Algorithm Results', 
@@ -685,6 +829,7 @@ class Skeleton:
             # Abre o ficheiro Help
         self.menu.add_command(label = "Help")
 
+        
     def run(self):
         #### O metodo que permite o programa manter-se aberto
         self.main.mainloop()
@@ -849,8 +994,6 @@ class Tabs:
                                     self.Regression5, self.Regression6, self.Regression7, self.Regression8,
                                     self.Regression9, self.Regression10]
             
-            self.Measure = []
-
             self.Calib_Sel_Frame = tk.Frame(self.SourceFrame, borderwidth = 0)
             self.Calib_Sel_Frame.grid(row = 4, columnspan = 2)
 
@@ -951,6 +1094,11 @@ wng = Warnings()
 
 ############## Tabs variaveis para serem criadas ###############
 
+"Beta Function"
+#window.menu.add_command(label = 'Tab', command = lambda: print(Notebook.notebook.select()))
+# Hei de utilizar quando completar a remocao de tabs
+# Nao vai estar na versao final
+
 tab1 = tk.Frame(Notebook.notebook, bg = 'dark grey')
 tab2 = tk.Frame(Notebook.notebook, bg = 'dark grey')
 tab3 = tk.Frame(Notebook.notebook, bg = 'dark grey')
@@ -980,13 +1128,19 @@ tabtype12 = Tabs()
 tabtype13 = Tabs()
 
 TabList = [
-    [tab1, tabtype1, "Temp\Data1.txt", "Temp\Result1.txt"], [tab2, tabtype2, "Temp\Data2.txt", "Temp\Result2.txt"], 
-    [tab3, tabtype3, "Temp\Data3.txt", "Temp\Result3.txt"], [tab4, tabtype4, "Temp\Data4.txt", "Temp\Result4.txt"], 
-    [tab5, tabtype5, "Temp\Data5.txt", "Temp\Result5.txt"], [tab6, tabtype6, "Temp\Data6.txt", "Temp\Result6.txt"],
-    [tab7, tabtype7, "Temp\Data7.txt", "Temp\Result7.txt"], [tab8, tabtype8, "Temp\Data8.txt", "Temp\Result8.txt"], 
-    [tab9, tabtype9, "Temp\Data9.txt", "Temp\Result9.txt"], [tab10, tabtype10, "Temp\Data10.txt", "Temp\Result10.txt"], 
-    [tab11, tabtype11, "Temp\Data11.txt", "Temp\Result11.txt"], [tab12, tabtype12, "Temp\Data12.txt", "Temp\Result12.txt"], 
-    [tab13, tabtype13, "Temp\Data13.txt", "Temp\Result13.txt"]
+    [tab1, tabtype1, "Temp\Data1.txt", "Temp\Analysis1.txt", "Temp\Result1.txt"], 
+    [tab2, tabtype2, "Temp\Data2.txt", "Temp\Analysis2.txt", "Temp\Result2.txt"], 
+    [tab3, tabtype3, "Temp\Data3.txt", "Temp\Analysis3.txt", "Temp\Result3.txt"], 
+    [tab4, tabtype4, "Temp\Data4.txt", "Temp\Analysis4.txt", "Temp\Result4.txt"], 
+    [tab5, tabtype5, "Temp\Data5.txt", "Temp\Analysis5.txt", "Temp\Result5.txt"], 
+    [tab6, tabtype6, "Temp\Data6.txt", "Temp\Analysis6.txt", "Temp\Result6.txt"],
+    [tab7, tabtype7, "Temp\Data7.txt", "Temp\Analysis7.txt", "Temp\Result7.txt"], 
+    [tab8, tabtype8, "Temp\Data8.txt", "Temp\Analysis8.txt", "Temp\Result8.txt"], 
+    [tab9, tabtype9, "Temp\Data9.txt", "Temp\Analysis9.txt", "Temp\Result9.txt"], 
+    [tab10, tabtype10, "Temp\Data10.txt", "Temp\Analysis10.txt", "Temp\Result10.txt"], 
+    [tab11, tabtype11, "Temp\Data11.txt", "Temp\Analysis11.txt", "Temp\Result11.txt"], 
+    [tab12, tabtype12, "Temp\Data12.txt", "Temp\Analysis12.txt", "Temp\Result12.txt"], 
+    [tab13, tabtype13, "Temp\Data13.txt", "Temp\Analysis13.txt", "Temp\Result13.txt"]
 ]
 
 TabTracker = []
@@ -996,13 +1150,14 @@ os.mkdir('Temp') # Pasta onde serao guardados os ficheiros temporarios
 
 
 window.run()
+##############################################################################################
 
 for i in range(Notebook.value):
     if os.path.isfile(TabList[i][2]) == True:
         os.remove(TabList[i][2]) # Apaga os dados adquiridos quando se faz plot
     if os.path.isfile(TabList[i][3]) == True:
         os.remove(TabList[i][3]) # Apaga os dados dos resultados dos algoritmos
-    if os.path.isfile('Temp\Calib_Results' + str(i+1) + '.txt') == True:
-        os.remove('Temp\Calib_Results' + str(i+1) + '.txt') # Apaga os resultados das regressoes lineares
+    if os.path.isfile(TabList[i][4]) == True:
+        os.remove(TabList[i][4]) # Apaga os resultados das regressoes lineares
 
 os.rmdir('Temp') # Apaga a pasta Temp
