@@ -26,10 +26,18 @@ ctypes.windll.shcore.SetProcessDpiAwareness(1)
 ###########################################################
 def Current_Tab():
 
-    final_num = int(Notebook.notebook.select()[-1]) - 3  # Devolve o id da tab onde o utilizador se encontra                # Vai buscar o numero na string do id
+    final_num = Notebook.notebook.index(Notebook.notebook.select()) - 1  # Devolve o id da tab onde o utilizador se encontra                # Vai buscar o numero na string do id
               # Altera-se o valor para corresponder aos indices da lista
-
-    return final_num
+    print(final_num)
+    print(TabTracker)
+    if final_num >= 0:
+        return final_num
+    
+    elif final_num < 0:
+        wng.popup('Final Results Tab Warning')
+        tk.Label(wng.warning, text = 'Most actions aren\'t available for this Tab.\n').pack()
+        tk.Label(wng.warning, text = 'Please open a new Tab\n\n').pack()
+        tk.Button(wng.warning, text = 'Return', command = lambda: wng.warning.destroy()).pack()
 
 #########################################################################################
 # Apaga as widgets dentro de frames e tira a geometria de frames, para fazer renovacao
@@ -58,53 +66,72 @@ def ClearWidget(Frame, parameter):
             if os.path.isfile(TabList[num][3]) == True:
                 os.remove(TabList[num][3])
 
-    elif Frame == 'Source':
+    elif Frame == 'Source': # Este for remove as opcoes de energia de decaimento das fontes de alphas
         for widget in TabList[num][1].SourceOptionsFrame.winfo_children():
-            widget.destroy()
+            widget.destroy() 
         TabList[num][1].SourceOptionsFrame.grid_remove()
 
-    elif Frame == 'Popup':
+    elif Frame == 'Popup': # Remove os popups que existem no programa
         for widget in wng.warning.winfo_children():
             widget.destroy()
         wng.warning.destroy()
 
-    elif Frame == 'Linear':
+    elif Frame == 'Linear': # Remove os resultados da regressao linear
         for widget in TabList[num][1].LinearRegressionFrame.winfo_children():
             widget.destroy()
         TabList[num][1].LinearRegressionFrame.grid_remove()
 
-        if parameter == 1:
+        if parameter == 1: # Nem todas as opcoes necessitam de destruir os resultados, 
+                            # portanto existe o parametro, para fazer a escolha de apagar o documento
             os.remove(TabList[num][4])
 
-    elif Frame == 'Everything':
+    elif Frame == 'Thickness': # Remove os resultados do calculo da espessura
+        for widget in TabList[num][1].ThicknessFrame.winfo_children():
+            widget.destroy()
+        TabList[num][1].ThicknessFrame.grid_remove()
+
+        if parameter == 1: # Apaga os resultados escritos calculados da espessura
+            os.remove(TabList[num][4])
+
+    elif Frame == 'Everything': # Esta e a opcao que da reset a tudo numa tab
         for widgets in TabList[num][1].GraphicFrame.winfo_children():
-            widgets.destroy()         # Este 'for' destroi grafcos antigos e constoi novos
+            widgets.destroy()        
         widget = 0
         TabList[num][1].GraphicFrame.grid_remove()
         
         for widget in TabList[num][1].AlgFrame.winfo_children(): 
-            widget.destroy() #Destroi a opcao de widgets anteriores dos algoritmos
+            widget.destroy() 
         widget = 0
         TabList[num][1].AlgFrame.grid_remove()
 
         for widget in TabList[num][1].ResultFrame.winfo_children():
-            widget.destroy()         # Este 'for' destroi grafcos antigos e constoi novos
+            widget.destroy()       
         widget = 0
         TabList[num][1].ResultFrame.grid_remove()
 
-        for widget in TabList[num][1].SourceOptionsFrame.winfo_children():
-            widget.destroy()
-        widget = 0
-        TabList[num][1].SourceOptionsFrame.grid_remove()
+        if TabTracker[num] < 0:
 
-        for widget in TabList[num][1].LinearRegressionFrame.winfo_children():
-            widget.destroy()
-        widget = 0
-        TabList[num][1].LinearRegressionFrame.grid_remove()
+            for widget in TabList[num][1].SourceOptionsFrame.winfo_children():
+                widget.destroy()
+            widget = 0
+            TabList[num][1].SourceOptionsFrame.grid_remove()
+
+            for widget in TabList[num][1].LinearRegressionFrame.winfo_children():
+                widget.destroy()
+            widget = 0
+            TabList[num][1].LinearRegressionFrame.grid_remove()
+
+        elif TabTracker[num] > 0:
+
+            for widget in TabList[num][1].ThicknessFrame.winfo_children():
+                widget.destroy()
+            TabList[num][1].ThicknessFrame.grid_remove()
 
         if parameter == 1:
             if os.path.isfile(TabList[num][3]) == True:
                 os.remove(TabList[num][3])
+            if os.path.isfile(TabList[num][4]) == True:
+                os.remove(TabList[num][4])
 
 ############################################################################################
 # Funcao que le os ficheiros e devolve listas. Estas podem ser 2d ou 1d, podem ter separadores
@@ -112,23 +139,28 @@ def ClearWidget(Frame, parameter):
 ############################################################################################
 def File_Reader(Document, Separator, Decimal):
 
-    OpenFile = open(Document, 'r')
-    lines = OpenFile.read()
-    OpenFile.close()
-    lines = lines.splitlines()
+    OpenFile = open(Document, 'r') #Abre o documento
+    lines = OpenFile.read() # Le o ficheiro como string
+    OpenFile.close() # Fecha o documento
+    lines = lines.splitlines() #Separa o array em linhas
 
-    if Separator != '0':
-        Results = [[0 for i in range(1)]for j in range(len(lines))]
+    if Separator != '0': # O separator verifica se temos uma matriz ou um vetor
+                        # caso seja '0', o documento a ser lido e um vetor, e nao e necessario separar por
+                        # colunas.
+
+        Results = [[0 for i in range(1)]for j in range(len(lines))] # Inicio de uma matriz com entradas 
+                                                                    # independentes
         i = 0
 
         for line in lines:
-            Results[i] = (line.split(Separator))
+            Results[i] = (line.split(Separator)) # Aqui separam se as colunas
             i += 1
 
         i = 0
         j = 0
 
-        for j in range(0, len(lines)):
+        for j in range(0, len(lines)): # Neste ciclo, sao transformados os resultados em int ou float,
+                                        # conforme o input
             for i in range(0, 2):
 
                 if Decimal == 'Yes':
@@ -143,13 +175,13 @@ def File_Reader(Document, Separator, Decimal):
 
         i = 0
 
-        if Decimal == 'String':
+        if Decimal == 'String': # Caso queiramos apenas uma string, a funcao devolve logo o vetor lines
 
             return lines
         
         else:
 
-            for i in range(0, len(lines)):
+            for i in range(0, len(lines)): # Aqui transforma se o vetor string em int ou float e devolve
 
                 if Decimal == 'Yes':
                         lines[i] = float(lines[i])
@@ -158,6 +190,7 @@ def File_Reader(Document, Separator, Decimal):
                     lines[i] = int(lines[i])
 
             return lines
+
 
 ###########################################################################################
 # Permite a escolha de regressoes lineares por parte do utilizador
@@ -196,7 +229,7 @@ def Calib_Choice():
 
         wng.popup('Linear Regression Selection Menu')
         tk.Label(wng.warning, text = 'Please Select a Calibration Trial \n' +
-                 'Choosing more than one calibration will average the slopes and intercepts.\n\n').pack()
+                 'Choosing more than one calibration will average the slopes and intersects.\n\n').pack()
 
         for i in range(0, len(Measure)):
             button_Choice = tk.Checkbutton(wng.warning, 
@@ -218,11 +251,14 @@ def Calib_Choice():
 def Final_Calculation():
 
     num = Current_Tab()
+    ClearWidget('Thickness', 0)
+    TabList[num][1].ThicknessFrame.grid(row = 5, columnspan = 3, pady = 5)
+
     Material_choice = TabList[num][1].Mat.get() # Determina qual o ficheiro do material a ler
     Material_choice = Material_choice + '.txt'
 
     slope = 0
-    intercept = 0
+    intersect = 0
     points = []
     regressions_index = []
     material_data = File_Reader(Material_choice, '|', 'Yes') #Daqui obtemos a lista que ira guardar
@@ -236,72 +272,88 @@ def Final_Calculation():
             regressions_index.append(TabTracker.index(-TabList[num][1].Regression_List[i].get()))
 
     i = 0
-
-    points = [[0 for i in range(0)]for j in range(len(regressions_index))]
-
-
-    for i in range(0, len(regressions_index)):
-        Aux_Channel = File_Reader(TabList[regressions_index[i]][3], ',', 'No')
-        Aux_Regression = File_Reader(TabList[regressions_index[i]][4], '0', 'Yes')
-
-        Temp = sorted(Aux_Channel)
-
-        slope = Aux_Regression[0] + slope
-        intercept = Aux_Regression[2] + intercept
-
-        for j in range(0, len(Aux_Channel)):
-            points[i].append(Temp[j][0])
-
-    peaks = len(Aux_Channel)
-    slope = slope / len(regressions_index)
-    intercept = intercept / len(regressions_index)
-
-    i = 0
     j = 0
+    Aux_Channel = []
+    Temp = []
 
-    Temp.clear()
-    Aux_Channel.clear()
-    Aux_Regression.clear()
+    for j in range(0, len(TabList[regressions_index[i]][1].DecayList)):
 
-    Aux_Regression = File_Reader(TabList[num][3], ',', 'No') # Analise dos picos de materiais
-    Aux_Channel = sorted(Aux_Regression)
-    
+        if TabList[regressions_index[0]][1].DecayList[j].get() != -1: # Aqui, vamos buscar os valores de
+                                                                        # decaimento que a utilizar para o intervalo
+            Aux_Channel.append(TabList[regressions_index[0]][1].DecayList[j].get()) # de stopping powers
+    # Como a fonte e a mesma para todas as calibracoes, nao importa qual delas e selecionada
+
+    Aux_Channel.sort()
+    peaks = len(Aux_Channel) # Para referencia do tamanho
 
     for i in range(0, len(regressions_index)):
-        for j in range(0, peaks):
-
-            if i == 0:
-                Temp.append(points[i][j])
-
-            else:
-                Temp[j] = Temp[j] + points[i][j]
-
-    i = 0
-    points.clear()
-
-    for i in range(0, peaks):
-        Temp[i] = Temp[i] / len(regressions_index)
-        points.append((slope * Aux_Channel[i][0]) + intercept )    
         
+        Aux_Regression = File_Reader(TabList[regressions_index[i]][4], '0', 'Yes') # Aqui vamos buscar as
+        # regressoes lineares para fazer uma media
+
+        slope = Aux_Regression[0] + slope # Acumular o declive
+        intersect = Aux_Regression[2] + intersect # Acumular a ordenada na origem
+
+    points = File_Reader(TabList[num][3], ',', 'No') # Analise dos picos de materiais em estudo
+    points.sort() # Ordenar os picos por ordem crescente
+    slope = slope / len(regressions_index)  # Buscar a media do declive
+    intersect = intersect / len(regressions_index) # Buscar a ordenada na origem
 
     i = 0
     j = 0
-    summed_values = 0
-    Aux_Channel.clear()
-    
+    Aux_Regression.clear()     
+    thickness = 0
+
+    tk.Label(TabList[num][1].ThicknessFrame, text = 'Thickness [nm]').grid(row = 0, column = 0)
+    tk.Label(TabList[num][1].ThicknessFrame, text = 'Channel').grid(row = 0, column = 1)
+
     for j in range(0, peaks):
-        for i in range(1, len(material_data)):
-            if material_data[i][0] >= points[j] and material_data[i][0] <= Temp[j]:
+
+        Temp.append((slope * points[j][0]) + intersect )  # Calibracao dos picos do material
+        uncertain = 0 # Ira devolver a incerteza da media da espessura
+        summed_values = 0 # Faz o somatorio dos valores do stopping power
+        i = 1
+
+        for i in range(1, len(material_data)): # O ciclo comeca em 1 porque a linha 0 tem a densidade e 
+                                                # o numero atomico
+            if material_data[i][0] >= Temp[j] and material_data[i][0] <= Aux_Channel[j]:
 
                 stopping_power = material_data[i][1] * material_data[0][1]
-                summed_values = summed_values + (0.001 / stopping_power)
+                stopping_power = (10000 / stopping_power) # Stopping power a dividir pelo step
+                                                          # e a multiplicar para obter as unidades em nm
+                summed_values = summed_values + stopping_power # O somatorio que resulta na aproximacao da espessura
 
-        Aux_Channel.append(summed_values)
-        summed_values = 0
-    
-    print(Aux_Channel)
-        
+        Aux_Regression.append(summed_values) # Lista que guarda a espessura por perda de energia
+        thickness = thickness + (Aux_Regression[j]) # Espessua media
 
+        tk.Label(TabList[num][1].ThicknessFrame, text = '%.3f' %(Aux_Regression[j])).grid(row = j + 1, column = 0)
+        tk.Label(TabList[num][1].ThicknessFrame, text = str(points[j][0])).grid(row = j + 1, column = 1)
+
+        if j == peaks - 1: # No ultimo run do ciclo for
+            
+            i = 0
+            thickness = thickness / len(Aux_Regression) # A fazer a media da espessura
+ 
+            my_file = open(TabList[num][4], 'w')
+            for i in range(0, len(Aux_Regression)): # Por fim faz se a incerteza da espessura media
+                uncertain = (Aux_Regression[i] - thickness)**2 + uncertain
+                my_file.write('%.3f' %(Aux_Regression[i]))
+                my_file.write('\n')
+
+            uncertain = uncertain / (peaks - 1)
+            uncertain = math.sqrt(uncertain) # Ultimo passo que resulta na espessura certa
+
+            my_file.write('%.3f' %(thickness))
+            my_file.write('\n')
+            my_file.write('%.3f' %(uncertain))
+            my_file.close()
+
+    tk.Label(TabList[num][1].ThicknessFrame, text = 'Average Thickness [nm]').grid(row = j + 2, column = 0)
+    tk.Label(TabList[num][1].ThicknessFrame, text = 'Uncertainty').grid(row = j + 2, column = 1)
+    tk.Label(TabList[num][1].ThicknessFrame, text = '%.3f' %(thickness)).grid(row = j + 3, column = 0)
+    tk.Label(TabList[num][1].ThicknessFrame, text = '%.3f' %(uncertain)).grid(row = j + 3, column = 1)
+    tk.Button(TabList[num][1].ThicknessFrame, command = lambda: ClearWidget('Thickness', 1),
+              text = 'Reset Results').grid(row = j + 4, columnspan = 2)
 
 #########################################################################################
 # Recebe os resultados dos algoritmos e mostra no GUI
@@ -310,26 +362,13 @@ def ResultManager():
 
     num = Current_Tab()
 
-    ClearWidget('Results', 0)
+    ClearWidget('Results', 0) # A funcao e evocada para dar reset aos valores anteriores
     TabList[num][1].ResultFrame.grid(row = 3, columnspan = 2, pady = 5)
 
-    """ OpenFile = open(TabList[num][3], 'r')
-    lines = OpenFile.read()
-    OpenFile.close()
-    lines = lines.splitlines()  
-    Results = [[0 for i in range(1)]for j in range(len(lines))]
-    i = 0 """
+    values = File_Reader(TabList[num][3], ',', 'No') #Esta leitura devolve os valores de channel e counts
 
-    values = File_Reader(TabList[num][3], ',', 'No')
-
-    """ for line in lines:
-        Results[i] = (line.split(','))
-        i += 1 """
-    
-    for j in range(0, len(values)):
-
-        """ for i in range(0, 2):
-            Results[j][i] = int(Results[j][i]) """
+    for j in range(0, len(values)): # O ciclo for apenas cria os checkbuttons e as labels para depois guardar
+                                    # os valores a serem apagados/usados nas funcoes seguintes
 
         Result_Button = tk.Checkbutton(TabList[num][1].ResultFrame, variable = TabList[num][1].Var_Data[j],
                 onvalue = 1, offvalue = -1,
@@ -343,6 +382,7 @@ def ResultManager():
 # Retira os resultados que nao estao checked e atualiza o txt dos resultados 
 ##########################################################################################        
 def Unchecked_Results():
+
     num = Current_Tab()
     i = 0
     j = 0
@@ -352,29 +392,34 @@ def Unchecked_Results():
 
     for widget in TabList[num][1].ResultFrame.winfo_children():
 
-        Eraser.append(widget)
+        Eraser.append(widget) # Aqui guardamos todos os widgets que exibem os resultados.
+                                # E necessario guardar num vetor, para que depois sejam apagados os corretos
 
-    """ OpenFile = open(TabList[num][3], 'r')
-    lines = OpenFile.read()
-    OpenFile.close()
-    lines = lines.splitlines() """
-
-    values = File_Reader(TabList[num][3], '0', 'String')
+    values = File_Reader(TabList[num][3], '0', 'String') # Aqui vao se buscar os valores de channel e counts
+                                                        # Como nao se fazem contas, apenas utilizamos a linha de
+                                                        # string que contem ambos valores
     
     for i in range(len(TabList[num][1].Var_Data)):
 
         if TabList[num][1].Var_Data[i].get() == 1:
-            Aux.append(values[k])
+            Aux.append(values[k])   # Caso seja selecionada a opcao, guardamos a linha para depois reescrever
+                                    # o documento que contem os resultados, de forma a guardar os pretendidos
     
-        elif TabList[num][1].Var_Data[i].get() == -1:
+        elif TabList[num][1].Var_Data[i].get() == -1: 
 
+            # No caso do Var_data devolver um -1, significa que se removeu a selecao do valor
+            # Nesse caso, tornamos esse valor num 0, destruimos o checkbutton no Eraser[j]
+            # e destruimos a label dos counts no Eraser[j + 1]
             TabList[num][1].Var_Data[i].set(0)
 
             Eraser[j].destroy()
             Eraser[j + 1].destroy()
 
         elif TabList[num][1].Var_Data[i].get() == 0:
-            k = k - 1
+
+            # Caso haja um 0 no meio, na mudanca de dados, tiramos valores de iteracao do vetor Aux
+            # e do vetor Eraser, para manter todas as contas certas
+            k -= 1
             j -= 2
 
         j += 2
@@ -383,13 +428,17 @@ def Unchecked_Results():
     i = 0
 
     for i in range(len(TabList[num][1].Var_Data)):
+        # Este for esta separado para nao haver confusoes de indices no primeiro ciclo
+        # Aqui, se for detetado um 0, pomos o IntVar no final do vetor Var_Data e
+        # eliminamos os Var_Data[i] = 0 do meio dos valores selecionados/nao selecionados
         if TabList[num][1].Var_Data[i].get() == 0:
             TabList[num][1].Var_Data.append(TabList[num][1].Var_Data[i])
             TabList[num][1].Var_Data.pop(i)
 
     i = 0
 
-    with open(TabList[num][3], "w") as file:
+    with open(TabList[num][3], "w") as file: # Por fim, reescrevemos o documento dos resultados
+                                            # com os resultados unchecked removidos
         for i in range(len(Aux)):
             file.write(Aux[i] + '\n')
 
@@ -400,23 +449,10 @@ def Linearize():
 
     num = Current_Tab()
     
-    """ OpenFile = open(TabList[num][3], 'r')
-    lines = OpenFile.read()
-    OpenFile.close()
-    lines = lines.splitlines()  
-    Results = [[0 for i in range(1)]for j in range(len(lines))] """
-    
     i = 0
     xaxis = []
     yaxis = []
-
     values = File_Reader(TabList[num][3], ',', 'No')
-
-    """ for line in lines:
-        Results[i] = (line.split(','))
-        xaxis.append(int(Results[i][0])) 
-
-        i += 1 """
 
     for i in range(0, len(values)):
         xaxis.append(values[i][0])
@@ -425,10 +461,9 @@ def Linearize():
 
     for i in range(0, len(TabList[num][1].DecayList)):
 
-        if TabList[num][1].DecayList[i].get() != 0 and TabList[num][1].DecayList[i].get() != -1:
+        if TabList[num][1].DecayList[i].get() != -1:
             yaxis.append(TabList[num][1].DecayList[i].get()) 
             
-    
     xvalues = sorted(xaxis)
     yvalues = sorted(yaxis)
     
@@ -443,8 +478,6 @@ def Linearize():
         tk.Button(wng.warning, text = 'Return',
                     command = lambda: wng.warning.destroy()).pack()
       
-
-
     else:
 
         ClearWidget('Linear', 0)
@@ -492,7 +525,7 @@ def Linearize():
         tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Values').grid(row = 0, column = 1)
         tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Uncertainty').grid(row = 0, column = 2)
         tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Slope').grid(row = 1, column = 0)
-        tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Intercept').grid(row = 2, column = 0)
+        tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Intersect').grid(row = 2, column = 0)
 
         tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.7f' %(m)).grid(row = 1, column = 1)
         tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.7f' %(sigma_m)).grid(row = 1, column = 2)
@@ -509,11 +542,7 @@ def Linearize():
 def ManSelec_Alg(Valuex, Valuey):
 
     num = Current_Tab()
-
     Counts = File_Reader(TabList[num][2], '0', 'No')
-
-    """ with open(TabList[num][2], "r") as file:   #Leitura do ficheiro
-        Counts = [int(line) for line in file]   #Extracao dos counts """
 
     AuxList = []   #Lista para guardar minimos quadrados
 
@@ -544,10 +573,6 @@ def Threshold_Alg():
     num = Current_Tab()
 
     Counts = File_Reader(TabList[num][2], '0', 'No')
-
-#Use "with open" it will close the file after reading, no need to close it manually
-    """ with open(TabList[num][2], "r") as file:
-        Counts = [int(line) for line in file] """
 
     Threshold = TabList[num][1].Algorithm.get()
     yaxis = []
@@ -589,9 +614,6 @@ def Threshold_Alg():
                 
         i += 1
 
-
-
-
     if os.path.isfile(TabList[num][3]) == True:
         with open(TabList[num][3], 'a') as results:
             for i in range(len(xaxis)):
@@ -615,6 +637,8 @@ def onclick(event):
     decider = TabList[num][1].Algorithm_Method.get()
 
     if decider == 'Manual Selection' and event.button == 3:
+    # Estas duas opcoes verificam que so no modo Manual selection e so com o botado direito do rato
+    # e que aparecem os dados
         xpoint = event.xdata
         ypoint = event.ydata
         ManSelec_Alg(xpoint, ypoint)
@@ -680,16 +704,16 @@ def Plot(File, Name):
 ##############################################################################
 def DataUploader(): 
 
-    domain = (('text files', '*.mca'), ('all files', '*.*'))
-    filename = fd.askopenfilename(title = 'Open a file', initialdir = '.', filetypes = domain)
-    
-    """ OpenFile = open(filename, 'r')
-    file = OpenFile.read()
-    OpenFile.close()
-    file = file.splitlines() """
+    domain = (('text files', '*.mca'), ('all files', '*.*')) # Aqui limitamos os ficheiros que podem ser abertos
+    filename = fd.askopenfilename(title = 'Open a file', initialdir = '.', filetypes = domain) 
+    # Faz a ligacao tkinter - janela do SO para abrir o ficheiro de dados
 
-    file = File_Reader(filename, '0', 'string')
-    Plot(file, filename)
+    if not filename:
+        pass # Certifica que o programa nao queixa caso nao seja efetuado um upload
+
+    else:
+        file = File_Reader(filename, '0', 'string') # Aqui le se o ficheiro que foi feito o upload
+        Plot(file, filename)    # Logo de seguida faz se o grafico
 
 ##############################################################################
 # Esta funcao gere o evento especifico de adicionar tabs, futuramente
@@ -699,23 +723,28 @@ def DataUploader():
 def handleTabChange(event):
 
     if Notebook.notebook.select() == Notebook.notebook.tabs()[-1] and len(Notebook.notebook.tabs()) < 15:
+        # Se a tab 'atual' for igual a ultima, que sera sempre a tab '+', e se o numero de tabs for menor que 15
+        # Adiciona se outra tab
             
         wng.popup('Tab Selector Menu')
 
         tk.Label(wng.warning, text = 'Please Select New Type of Tab to Open \n').pack()
-        tk.Button(wng.warning, command = lambda: Tabs.tab_change(1), 
+        tk.Button(wng.warning, command = lambda: Tabs.tab_change(1),
                         text = 'Calibration Trial').pack()
         tk.Button(wng.warning, command = lambda: Tabs.tab_change(2), 
                         text = 'Material Trial').pack()
         tk.Label(wng.warning, text ='\n').pack()
         tk.Button(wng.warning, text = 'Return',
                     command = lambda : Tabs.tab_change(3)).pack()
+        # os numeros do tab_change indicam quais os tipos de tabs a adicionar
+
 
     elif len(Notebook.notebook.tabs()) >= 15:
         Notebook.notebook.hide(14)
+        # Caso se chege ao numero 15 de tabs, o botao '+' e escondido
 
 ############################################################################
-# Esta funcao gere 
+# Esta funcao gere as fontes de radiacao
 #############################################################################
 def SourceReader(*args):
 
@@ -726,10 +755,6 @@ def SourceReader(*args):
     
     Alpha = TabList[num][1].Source.get()
     Alpha = Alpha + '.txt'
-
-    if Alpha == '226Ra.txt':
-        TabList[num][1].DecayList[6].set(-1)
-
 
     Decay = File_Reader 
     with open(Alpha, 'r') as file:
@@ -815,6 +840,7 @@ class Skeleton:
         __file_menu.add_command(label = "Reset All Data from Current Tab",
                                 command = lambda: ClearWidget('Everything', 1) )
         __file_menu.add_command(label = "Manage Alpha Particles Source Values")
+        __file_menu.add_command(label = "Manage Material Files")
         __file_menu.add_separator()
         __file_menu.add_command(label = 'Exit', command = self.main.quit)
 
@@ -823,8 +849,8 @@ class Skeleton:
         self.menu.add_cascade(label = 'Manage Tabs', menu = __tabs_menu)
         __tabs_menu.add_command(label = 'Add Calibration Tab', command = lambda: Tabs.tab_change(1))
         __tabs_menu.add_command(label = 'Add Material Tab', command = lambda: Tabs.tab_change(2))
-        __tabs_menu.add_separator()
-        __tabs_menu.add_command(label = 'Remove Current Tab')
+        #__tabs_menu.add_separator()
+        #__tabs_menu.add_command(label = 'Remove Current Tab', command = Tab_Remover)
 
             # Abre o ficheiro Help
         self.menu.add_command(label = "Help")
@@ -839,6 +865,9 @@ class Skeleton:
 #############################################################################
 class Warnings:
     def popup(self, name):
+
+        # A class cria poopups que tem que ser fechados antes de voltarem para o skeleton
+        # funciona bem para avisos, mas tambem para menus com opcoes obrigatorias de submeter
 
         self.warning = tk.Toplevel(window.main)
         self.warning.title(name)
@@ -997,6 +1026,8 @@ class Tabs:
             self.Calib_Sel_Frame = tk.Frame(self.SourceFrame, borderwidth = 0)
             self.Calib_Sel_Frame.grid(row = 4, columnspan = 2)
 
+            self.ThicknessFrame = tk.Frame(self.SourceFrame)
+
             tk.Label(self.SourceFrame, text = 'Material of Film Used: ').grid(row = 0, columnspan = 2)
             Materials = ["Al", "Au", "Pb", "PMMA", "Sn"]
             tk.OptionMenu(self.SourceFrame, self.Mat, *Materials ).grid(row = 1, columnspan = 2)
@@ -1016,19 +1047,19 @@ class Tabs:
             self.Source.set('Radiation Sources')
 
             self.decay1 = tk.DoubleVar()
-            self.decay1.set(0)
+            self.decay1.set(-1)
             self.decay2 = tk.DoubleVar()
-            self.decay2.set(0)
+            self.decay2.set(-1)
             self.decay3 = tk.DoubleVar()
-            self.decay3.set(0)           
+            self.decay3.set(-1)           
             self.decay4 = tk.DoubleVar()
-            self.decay4.set(0) 
+            self.decay4.set(-1) 
             self.decay5 = tk.DoubleVar()
-            self.decay5.set(0) 
+            self.decay5.set(-1) 
             self.decay6 = tk.DoubleVar()
-            self.decay6.set(0) 
+            self.decay6.set(-1) 
             self.decay7 = tk.DoubleVar()
-            self.decay7.set(0) 
+            self.decay7.set(-1) 
 
             self.DecayList = [self.decay1, self.decay2, self.decay3, self.decay4, self.decay5,
                               self.decay6, self.decay7]
@@ -1050,15 +1081,9 @@ class Tabs:
     @staticmethod
     def tab_change(num):
 
-        index = len(Notebook.notebook.tabs()) - 1
+        index = len(Notebook.notebook.tabs()) - 1            
 
-        if num == 3:
-
-            Notebook.notebook.select(index - 1)
-            wng.warning.destroy()
-            
-
-        elif num == 1:
+        if num == 1:
 
             Tabs.Counter_Calib -= 1
             TabTracker.append(Tabs.Counter_Calib)
@@ -1084,7 +1109,25 @@ class Tabs:
                 wng.warning.destroy()
             except:
                 ()
+        
+        elif num == 3:
 
+            Notebook.notebook.select(index - 1)
+            wng.warning.destroy()
+
+        elif num == 4:
+            value = Current_Tab()
+            Notebook.notebook.select(index - 1)
+
+            if TabTracker[value] < 0:
+                Tabs.Counter_Calib += 1
+
+            else:
+                Tabs.Counter_Mat -= 1
+
+
+            TabTracker.pop(value)
+                
 ############ Variaveis Estruturais #############################
 
 window = Skeleton()
@@ -1095,7 +1138,7 @@ wng = Warnings()
 ############## Tabs variaveis para serem criadas ###############
 
 "Beta Function"
-#window.menu.add_command(label = 'Tab', command = lambda: print(Notebook.notebook.select()))
+window.menu.add_command(label = 'Tab', command = lambda: print(Notebook.notebook.tabs()))
 # Hei de utilizar quando completar a remocao de tabs
 # Nao vai estar na versao final
 
