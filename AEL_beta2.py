@@ -9,7 +9,7 @@ from tkinter import filedialog as fd
 #from PIL import ImageTk, Image
 #from tkinter.messagebox import showinfo
 #from matplotlib.pylab import *
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
@@ -54,6 +54,10 @@ def ClearWidget(Frame, parameter):
     elif Frame == 'Algorithm':
         for widget in TabList[num][1].AlgFrame.winfo_children(): 
             widget.destroy() #Destroi a opcao de widgets anteriores dos algoritmos
+
+        if parameter == 1:
+            TabList[num][1].Algorithm_Method.set('Select Algorithm to Run')
+            TabList[num][1].Algorithm.set(0)
     
     elif Frame == 'Results':
         for widget in TabList[num][1].ResultFrame.winfo_children():
@@ -70,6 +74,9 @@ def ClearWidget(Frame, parameter):
         for widget in TabList[num][1].SourceOptionsFrame.winfo_children():
             widget.destroy() 
         TabList[num][1].SourceOptionsFrame.grid_remove()
+        if parameter == 1:
+            TabList[num][1].Source.set('Radiation Sources')
+        
 
     elif Frame == 'Popup': # Remove os popups que existem no programa
         for widget in wng.warning.winfo_children():
@@ -81,9 +88,8 @@ def ClearWidget(Frame, parameter):
             widget.destroy()
         TabList[num][1].LinearRegressionFrame.grid_remove()
         widget = 0
-        for widget in Notebook.Calib_Result.winfo_children():
-            if widget != Notebook.Calib_Result.winfo_children()[0]:
-                widget.destroy()
+        for widget in Notebook.Calib_Result2.winfo_children():
+            widget.destroy()
 
         if parameter == 1: # Nem todas as opcoes necessitam de destruir os resultados, 
                             # portanto existe o parametro, para fazer a escolha de apagar o documento
@@ -94,11 +100,12 @@ def ClearWidget(Frame, parameter):
             widget.destroy()
         TabList[num][1].ThicknessFrame.grid_remove()
         widget = 0
-        for widget in Notebook.Mat_Result.winfo_children():
-            if widget != Notebook.Mat_Result.winfo_children()[0]:
-                widget.destroy()
+        for widget in Notebook.Mat_Result2.winfo_children():
+            widget.destroy()
+        
 
         if parameter == 1: # Apaga os resultados escritos calculados da espessura
+            TabList[num][1].Mat.set('Select Material')
             os.remove(TabList[num][4])
 
     elif Frame == 'Everything': # Esta e a opcao que da reset a tudo numa tab
@@ -111,6 +118,8 @@ def ClearWidget(Frame, parameter):
             widget.destroy() 
         widget = 0
         TabList[num][1].AlgFrame.grid_remove()
+        TabList[num][1].Algorithm_Method.set('Select Algorithm to Run')
+        TabList[num][1].Algorithm.set(0)
 
         for widget in TabList[num][1].ResultFrame.winfo_children():
             widget.destroy()       
@@ -123,6 +132,7 @@ def ClearWidget(Frame, parameter):
                 widget.destroy()
             widget = 0
             TabList[num][1].SourceOptionsFrame.grid_remove()
+            TabList[num][1].Source.set('Radiation Sources')
 
             for widget in TabList[num][1].LinearRegressionFrame.winfo_children():
                 widget.destroy()
@@ -134,6 +144,7 @@ def ClearWidget(Frame, parameter):
             for widget in TabList[num][1].ThicknessFrame.winfo_children():
                 widget.destroy()
             TabList[num][1].ThicknessFrame.grid_remove()
+            TabList[num][1].Mat.set('Select Material')
 
         if parameter == 1:
             if os.path.isfile(TabList[num][3]) == True:
@@ -209,6 +220,7 @@ def Final_Results():
 
     if tracker < 0:
         Linearize()
+
     else:
         Final_Calculation()
 
@@ -217,34 +229,36 @@ def Final_Results():
             if os.path.isfile(TabList[i][4]) == True:
 
                 Results = File_Reader(TabList[i][4], '0', 'Yes')
-                tk.Label(Notebook.Calib_Result, text = 'Calibration Trial ' + 
+                tk.Label(Notebook.Calib_Result2, text = 'Calibration Trial ' + 
                         str(-TabTracker[i]) + ' - ' +
-                        TabList[i][1].Source.get()).grid(row = 4 * i + i + 1, columnspan = 3)
-                tk.Label(Notebook.Calib_Result, 
-                        text = '(MeV)').grid(row = 4 * i + i + 2, column = 0)
-                tk.Label(Notebook.Calib_Result, 
-                        text = 'Values').grid(row = 4 * i + i + 2, column = 1)
-                tk.Label(Notebook.Calib_Result, 
-                        text = 'Uncertainty').grid(row = 4 * i + i + 2, column = 2)
-                tk.Label(Notebook.Calib_Result, 
-                        text = 'Slope').grid(row = 4 * i + i + 3, column = 0)
-                tk.Label(Notebook.Calib_Result, 
-                        text = 'Intersect').grid(row = 4 * i + i + 4, column = 0)
-                tk.Label(Notebook.Calib_Result, 
-                        text = '').grid(row = 4 * i + i + 5, column = 0)
+                        TabList[i][1].Source.get()).grid(row = 4 * i + i, columnspan = 3)
+                tk.Label(Notebook.Calib_Result2, 
+                        text = '(MeV)').grid(row = 4 * i + i + 1, column = 0)
+                tk.Label(Notebook.Calib_Result2, 
+                        text = 'Values').grid(row = 4 * i + i + 1, column = 1)
+                tk.Label(Notebook.Calib_Result2, 
+                        text = 'Uncertainty').grid(row = 4 * i + i + 1, column = 2)
+                tk.Label(Notebook.Calib_Result2, 
+                        text = 'Slope').grid(row = 4 * i + i + 2, column = 0)
+                tk.Label(Notebook.Calib_Result2, 
+                        text = 'Intersect').grid(row = 4 * i + i + 3, column = 0)
+                tk.Label(Notebook.Calib_Result2, 
+                        text = '').grid(row = 4 * i + i + 4, column = 0)
 
-                tk.Label(Notebook.Calib_Result, 
-                        text = '%.7f' %(Results[0])).grid(row = 4 * i + i + 3, column = 1)
-                tk.Label(Notebook.Calib_Result, 
-                        text = '%.7f' %(Results[1])).grid(row = 4 * i + i + 3, column = 2)
-                tk.Label(Notebook.Calib_Result, 
-                        text = '%.4f' %(Results[2])).grid(row = 4 * i + i + 4, column = 1)
-                tk.Label(Notebook.Calib_Result, 
-                        text = '%.4f' %(Results[3])).grid(row = 4 * i + i + 4, column = 2)
-            
-            else:
-                pass
-
+                tk.Label(Notebook.Calib_Result2, 
+                        text = '%.7f' %(Results[0])).grid(row = 4 * i + i + 2, column = 1)
+                tk.Label(Notebook.Calib_Result2, 
+                        text = '%.7f' %(Results[1])).grid(row = 4 * i + i + 2, column = 2)
+                tk.Label(Notebook.Calib_Result2, 
+                        text = '%.4f' %(Results[2])).grid(row = 4 * i + i + 3, column = 1)
+                tk.Label(Notebook.Calib_Result2, 
+                        text = '%.4f' %(Results[3])).grid(row = 4 * i + i + 3, column = 2)
+                
+                Notebook.calib_canvas.update_idletasks()    
+                Notebook.calib_canvas.config(scrollregion = Notebook.Calib_Result2.bbox())
+                Notebook.Calib_Result2.bind('<Configure>', 
+                              lambda e: Notebook.calib_canvas.configure(
+                                  scrollregion = Notebook.calib_canvas.bbox('all'), width = e.width)) 
 
         if tracker > 0 and TabTracker[i] > 0:
             if os.path.isfile(TabList[i][4]) == True and os.path.isfile(TabList[i][3]) == True:
@@ -258,34 +272,40 @@ def Final_Results():
                 for j in range(0, size):
                     if j == 0:
 
-                        tk.Label(Notebook.Mat_Result, text = 'Material Trial ' + 
+                        tk.Label(Notebook.Mat_Result2, text = 'Material Trial ' + 
                             str(TabTracker[i]) + ' - ' +
-                            TabList[i][1].Mat.get()).grid(row = (4 + size) * i + i + j + 1, columnspan = 2)
-                        tk.Label(Notebook.Mat_Result, 
-                                 text = 'Channel').grid(row = (4 + size) * i + i + j + 2, column = 0)
-                        tk.Label(Notebook.Mat_Result, 
-                                 text = 'Thickness').grid(row = (4 + size) * i + i + j + 2, column = 1)
+                            TabList[i][1].Mat.get()).grid(row = (4 + size) * i + i + j , columnspan = 2)
+                        tk.Label(Notebook.Mat_Result2, 
+                                 text = 'Channel').grid(row = (4 + size) * i + i + j + 1, column = 0)
+                        tk.Label(Notebook.Mat_Result2, 
+                                 text = 'Thickness').grid(row = (4 + size) * i + i + j + 1, column = 1)
                     
-                    tk.Label(Notebook.Mat_Result, 
-                             text= str(Peaks[j][0])).grid(row = (4 + size) * i + i + j + 3, 
+                    tk.Label(Notebook.Mat_Result2, 
+                             text= str(Peaks[j][0])).grid(row = (4 + size) * i + i + j + 2, 
                                                           column = 0)
-                    tk.Label(Notebook.Mat_Result, 
-                             text= str(Results[j]) + ' nm').grid(row = (4 + size) * i + i + j + 3, 
+                    tk.Label(Notebook.Mat_Result2, 
+                             text= str(Results[j]) + ' nm').grid(row = (4 + size) * i + i + j + 2, 
                                                           column = 1)
                     
-                tk.Label(Notebook.Mat_Result, 
-                                 text = '\nAverage').grid(row = (4 + size) * i + i + j + 4, column = 0)
-                tk.Label(Notebook.Mat_Result, 
-                                 text = 'Uncertainty').grid(row = (4 + size) * i + i + j + 5, column = 0)
-                tk.Label(Notebook.Mat_Result, 
+                tk.Label(Notebook.Mat_Result2, 
+                                 text = '\nAverage').grid(row = (4 + size) * i + i + j + 3, column = 0)
+                tk.Label(Notebook.Mat_Result2, 
+                                 text = 'Uncertainty').grid(row = (4 + size) * i + i + j + 4, column = 0)
+                tk.Label(Notebook.Mat_Result2, 
                                  text = '\n' + str(Results[j + 1]) 
-                                 + ' nm').grid(row = (4 + size) * i + i + j + 4, column = 1)
-                tk.Label(Notebook.Mat_Result, 
+                                 + ' nm').grid(row = (4 + size) * i + i + j + 3, column = 1)
+                tk.Label(Notebook.Mat_Result2, 
                                  text = str(Results[j + 2]) 
-                                 + ' nm').grid(row = (4 + size) * i + i + j + 5, column = 1)
-                tk.Label(Notebook.Mat_Result, 
-                                 text = '').grid(row = (4 + size) * i + i + j + 6, 
+                                 + ' nm').grid(row = (4 + size) * i + i + j + 4, column = 1)
+                tk.Label(Notebook.Mat_Result2, 
+                                 text = '').grid(row = (4 + size) * i + i + j + 5, 
                                                                   columnspan = 2)
+                
+                Notebook.mat_canvas.update_idletasks()
+                Notebook.mat_canvas.config(scrollregion = Notebook.Mat_Result2.bbox())
+                Notebook.Mat_Result2.bind('<Configure>', 
+                              lambda e: Notebook.mat_canvas.configure(
+                                  scrollregion = Notebook.mat_canvas.bbox('all'), width = e.width)) 
                 
 ###########################################################################################
 # Permite a escolha de regressoes lineares por parte do utilizador
@@ -351,7 +371,6 @@ def Final_Calculation():
 
     Material_choice = TabList[num][1].Mat.get() # Determina qual o ficheiro do material a ler
     Material_choice = 'Files\Materials\\' +  Material_choice + '.txt'
-    print(Material_choice)
 
     slope = 0
     intersect = 0
@@ -690,6 +709,7 @@ def Threshold_Alg():
     counter = 0
     xaxis = []
     i = 0
+    j = 0
 
 #Just iterate of the values of the list itself. Each "count" is an element of Counts
     for count in (Counts):
@@ -713,15 +733,34 @@ def Threshold_Alg():
             #(count is now <= Threshold) and we should save the max value of
             #current_peak and put everything to zero (aka move to the next peak)
 
-            if current_peak and len(current_peak) > 3:
+            if current_peak:
 
                     yaxis.append(max(current_peak))
                     xaxis.append(counter + current_peak.index(max(current_peak)))
+
+                    if len(xaxis) > 1:
+                        if xaxis[j] - xaxis[j-1] < 20:
+                            
+                            decider = max(yaxis[j-1], yaxis[j])
+
+                            if decider == yaxis[j]:
+                                yaxis.pop(j-1)
+                                xaxis.pop(j-1)
+                            elif decider == yaxis[j-1]:
+                                yaxis.pop(j)
+                                xaxis.pop(j)
+
+                            j -= 1
+
                     counter = counter + len(current_peak)
                     current_peak_counts = 0
                     current_peak = []
+                    j += 1
                 
         i += 1
+
+
+
 
     if os.path.isfile(TabList[num][3]) == True:
         with open(TabList[num][3], 'a') as results:
@@ -739,6 +778,12 @@ def Threshold_Alg():
 ################################################################################
 # Gere o evento de obtencao de pontos diretamente do grafico
 ################################################################################
+def showimage():
+    num = Current_Tab()
+    wng.popup('Decay Chain')
+    
+
+
 def onclick(event):
 
     num = Current_Tab()
@@ -752,66 +797,12 @@ def onclick(event):
         ypoint = event.ydata
         ManSelec_Alg(xpoint, ypoint)
 
-#############################################
-# Esta funcao recebe os dados dos ficheiros externos
-# e insere os graficos na frame grande do GUI.
-# Ao mesmo tempo cria um txt para outras funções
-# acederem aos dados
-#############################################
-def Plot(File, Name):
-
-    Channel = []    #Lista vazia para guardar o Channel
-    Counts = []     #Lista vazia para guardar os Counts
-
-    num = Current_Tab()
-
-    ClearWidget('Graphic', 0)
-    TabList[num][1].GraphicFrame.grid(column = 0, row = 0, sticky = "nw", pady = 5, columnspan = 2)
-
-    Data = open(TabList[num][2], "w")
-
-    if Name[-4:] == ".mca":         #Por enquanto esta configurado para os ficheiros 
-                                    # da maquina para AEL. Se for configurado RBS
-                                    #ha-de-se incluir outro if.
-        for i in range(12, len(File) - 1):  
-            Counts.append(int(File[i]))
-            Channel.append(i-11)
-            Data.write(str(Counts[i-12])+"\n")
-
-        # Ciclo for para adquirir os valores dos dados
-
-    Data.close()
-
-    if TabTracker[num] < 0:
-        Title = 'Calibration Trial ' + str(-TabTracker[num])
-
-    elif TabTracker[num] > 0: 
-        Title = 'Material Trial ' + str(TabTracker[num])
-
-
-    figure = Figure(figsize = (6,4), dpi = 100) #A figura contem o grafico
-    figure_canvas = FigureCanvasTkAgg(figure, TabList[num][1].GraphicFrame) #A class FigureCanvasTkAgg
-    #liga o matplotlib ao tkinter
-
-    NavigationToolbar2Tk(figure_canvas, TabList[num][1].GraphicFrame) # Esta linha permite que as ferramentas
-    #do matplotlip aparecam na interface do tkinter
-
-    #Aqui inicia-se o grafico com os dados e os eixos
-    axes = figure.add_subplot() 
-    axes.plot(Channel, Counts, 'D')
-    axes.set_title(Title)
-    axes.set_xlabel('Channel')
-    axes.set_ylabel('Counts')
-
-    figure.canvas.mpl_connect('button_press_event', onclick)
-
-    #Por fim, acrescenta-se a geometria do tkinter
-    figure_canvas.get_tk_widget().pack()
-
 ##############################################################################
 #Esta funcao ira ler o ficheiro input.
 ##############################################################################
 def DataUploader(): 
+
+    num = Current_Tab()
 
     domain = (('text files', '*.mca'), ('all files', '*.*')) # Aqui limitamos os ficheiros que podem ser abertos
     filename = fd.askopenfilename(title = 'Open a file', initialdir = '.', filetypes = domain) 
@@ -822,7 +813,11 @@ def DataUploader():
 
     else:
         file = File_Reader(filename, '0', 'string') # Aqui le se o ficheiro que foi feito o upload
-        Plot(file, filename)    # Logo de seguida faz se o grafico
+        TabList[num][5].Structure(file, filename)    # Logo de seguida faz se o grafico
+        TabList[num][5].subplots()
+        value = TabList[num][1].Algorithm.get()
+        if value != 0:
+            TabList[num][5].threshold(value)
 
 ##############################################################################
 # Esta funcao gere o evento especifico de adicionar tabs, futuramente
@@ -910,6 +905,9 @@ def Method(*args):
                   command = Unchecked_Results).grid(row = 4, column = 0)
         tk.Button(TabList[num][1].AlgFrame, text = 'Remove All',
                   command = lambda: ClearWidget('Results', 1)).grid(row = 4, column = 1)
+
+        TabList[num][1].Algorithm.set(0)
+        TabList[num][5].destroyer()
      
 
     elif decider == 'Threshold Input':  #Definicao dos controlos para o algoritmo Threshold_Alg
@@ -923,6 +921,19 @@ def Method(*args):
                   command = Unchecked_Results).grid(row = 4, column = 1)
         tk.Button(TabList[num][1].AlgFrame,text = 'Remove All',
                   command = lambda: ClearWidget('Results', 1)).grid(row = 4, column = 2)
+
+#############################################################################
+# Esta funcao muda uma linha de threshold, caso o utilizador escreva um numero
+#############################################################################
+def on_entry_change(*args):
+
+    num = Current_Tab()
+
+    try:
+        value = TabList[num][1].Algorithm.get()
+        TabList[num][5].threshold(value)
+    except:
+        pass
 
 #############################################################################
 # Esta funcao deixa dar upload ou apagar ficheiros para a pasta de dados
@@ -1037,7 +1048,7 @@ class Skeleton:
             # O tipico File Menu. Hao de haver mais opcoes no futuro
         __file_menu = tk.Menu(self.menu, tearoff = False) 
         self.menu.add_cascade(label = 'File', menu = __file_menu)
-        __file_menu.add_command(label = 'Read Data', command = DataUploader)
+        __file_menu.add_command(label = 'Plot Data', command = DataUploader)
         __file_menu.add_command(label = "Save Results")
         __file_menu.add_separator()
         __file_menu.add_command(label = 'Remove Current Plot',
@@ -1123,29 +1134,67 @@ class Tabs:
         self.CRFrame = tk.Frame(self.notebook, bg = 'dark grey')
         self.PlusFrame = tk.Frame(self.notebook, bg = 'dark grey')
         self.CRFrame.columnconfigure(0, weight = 3)
+        self.CRFrame.columnconfigure(1, weight = 3)
+        self.CRFrame.rowconfigure(0, weight = 3)
+        self.CRFrame.rowconfigure(1, weight = 3)
+
         
         
         ############# Aqui adicionam-se as frames iniciadas acima
         self.notebook.add(self.CRFrame, text = 'Final Results')
         self.notebook.add(self.PlusFrame, text = '+')
-
-        ############# Frames onde irao ser inseridos os resultados finais
         
+        ############# Frames onde irao ser inseridos os resultados finais
 
         self.Calib_Result = tk.Frame(self.CRFrame, borderwidth = 5, relief = 'ridge')
         self.Calib_Result.grid(row = 0, column = 0, pady = 10, padx = 30, sticky = 'nw', rowspan = 2)
+        self.Calib_Result.columnconfigure(0, weight = 3)
+        self.Calib_Result.columnconfigure(1, weight = 1)
+
         self.Calib_Result_Title = tk.Label(self.Calib_Result, 
                  text = '                       Calibration Trials Results                       \n')
-        self.Calib_Result_Title.grid(row = 0, columnspan = 3)
+        self.Calib_Result_Title.grid(row = 0, column = 0, columnspan = 3)
+
+        self.calib_canvas = tk.Canvas(self.Calib_Result)
+        self.Calib_Result2 = tk.Frame(self.calib_canvas)
+        self.calib_scrollbar = tk.Scrollbar(self.Calib_Result)
+
+        self.calib_canvas.config(yscrollcommand = self.calib_scrollbar.set, highlightthickness = 0 )
+        self.calib_scrollbar.config(orient = tk.VERTICAL, command = self.calib_canvas.yview)
+
+        self.calib_canvas.grid(row = 1, column = 0)
+        self.calib_scrollbar.grid(row = 1, column = 2, sticky = 'ns')
+        self.calib_scrollbar.place
+        self.calib_canvas.create_window(0, 0, window = self.Calib_Result2, anchor = tk.NW)
+        self.Calib_Result2.bind('<Configure>', 
+                              lambda e: self.calib_canvas.configure(
+                                  scrollregion = self.calib_canvas.bbox('all'), width = e.width)) 
+
 
         self.Mat_Result = tk.Frame(self.CRFrame, borderwidth = 5, relief = 'ridge')
-        self.Mat_Result.grid(row = 0, column = 1, pady = 10, padx = 30, sticky = 'ne')
+        self.Mat_Result.grid(row = 0, column = 1, pady = 10, padx = 30, sticky = 'ne', rowspan = 2)
+        self.Mat_Result.columnconfigure(0, weight = 3)
+        self.Mat_Result.columnconfigure(1, weight = 1)
+
+
         self.Mat_Result_Title = tk.Label(self.Mat_Result, 
                  text = '                       Material Trials Results                       \n')
-        self.Mat_Result_Title.grid(row = 0, columnspan = 2)
+        self.Mat_Result_Title.grid(row = 0, column = 0, columnspan = 3)
 
-        self.Final_Result = tk.Frame(self.CRFrame, borderwidth = 5, relief = 'ridge')
-        self.Final_Result.grid(row = 1, column = 1, pady = 10, padx = 30, sticky = 'ne')
+        self.mat_canvas = tk.Canvas(self.Mat_Result)
+        self.Mat_Result2 = tk.Frame(self.mat_canvas)
+        self.mat_scrollbar = tk.Scrollbar(self.Mat_Result)
+
+        self.mat_canvas.config(yscrollcommand = self.mat_scrollbar.set, highlightthickness = 0 )
+        self.mat_scrollbar.config(orient = tk.VERTICAL, command = self.mat_canvas.yview)
+
+        self.mat_canvas.grid(row = 1, column = 0)
+        self.mat_scrollbar.grid(row = 1, column = 2, sticky = 'ns')
+        self.mat_canvas.create_window(0, 0, window = self.Mat_Result2, anchor = tk.NW )
+        self.Mat_Result2.bind('<Configure>', 
+                              lambda e: self.mat_canvas.configure(
+                                  scrollregion = self.mat_canvas.bbox('all'), width = e.width)) 
+        
         
 
         ########### Variavel para contar o numero de separadores 
@@ -1184,6 +1233,7 @@ class Tabs:
         self.Algorithm_Method.set('Select Algorithm to Run')
 
         self.Algorithm = tk.IntVar()
+        self.Algorithm.trace('w', on_entry_change)
         self.Algorithm.set(0)
 
         self.variable1 = tk.IntVar()
@@ -1297,8 +1347,10 @@ class Tabs:
             self.DecayList = [self.decay1, self.decay2, self.decay3, self.decay4, self.decay5,
                               self.decay6, self.decay7]
 
-            tk.Label(self.SourceFrame, text = 'Radiation Source Selected: ').grid(row = 0, columnspan = 2)
-            tk.OptionMenu(self.SourceFrame, self.Source, *source_list, command = SourceReader).grid(row = 1, columnspan = 2)
+            tk.Label(self.SourceFrame, 
+                     text = 'Radiation Source Selected: ').grid(row = 0, columnspan = 2)
+            tk.OptionMenu(self.SourceFrame, self.Source, 
+                          *source_list, command = SourceReader).grid(row = 1, columnspan = 2)
             self.SourceOptionsFrame = tk.Frame(self.SourceFrame, borderwidth = 0)
             self.SourceOptionsFrame.grid(row = 2, columnspan = 2)
             self.LinearRegressionFrame = tk.Frame(self.SourceFrame, borderwidth = 1)
@@ -1320,7 +1372,8 @@ class Tabs:
             Tabs.Counter_Calib -= 1
             TabTracker.append(Tabs.Counter_Calib)
             TabList[Notebook.value][1].AnalysisTab(1)
-            Notebook.notebook.insert(index, TabList[Notebook.value][0], text = "Calibration Trial " + str(-Tabs.Counter_Calib))
+            Notebook.notebook.insert(index, TabList[Notebook.value][0], 
+                                     text = "Calibration Trial " + str(-Tabs.Counter_Calib))
             Notebook.notebook.select(index)
             Notebook.value = Notebook.value + 1
             try:
@@ -1334,7 +1387,8 @@ class Tabs:
             Tabs.Counter_Mat += 1
             TabTracker.append(Tabs.Counter_Mat)
             TabList[Notebook.value][1].AnalysisTab(2)
-            Notebook.notebook.insert(index, TabList[Notebook.value][0], text = "Material Trial " + str(Tabs.Counter_Mat))
+            Notebook.notebook.insert(index, TabList[Notebook.value][0], 
+                                     text = "Material Trial " + str(Tabs.Counter_Mat))
             Notebook.notebook.select(index)
             Notebook.value = Notebook.value + 1
             try:
@@ -1360,6 +1414,84 @@ class Tabs:
 
             TabTracker.pop(value)
                 
+###########################################################################
+# Esta classe recebe os dados dos ficheiros externos
+# e insere os graficos na frame grande do GUI.
+# Ao mesmo tempo cria um txt para outras funções
+# acederem aos dados
+# Se estiver selecionado o threshold input, mostra uma linha do valor
+############################################################################
+class Plot:
+
+    def Structure(self, File, Name):
+
+        self.Channel = []    #Lista vazia para guardar o Channel
+        self.Counts = []     #Lista vazia para guardar os Counts
+        self.line = []
+
+        num = Current_Tab()
+
+        ClearWidget('Graphic', 0)
+        TabList[num][1].GraphicFrame.grid(column = 0, row = 0, sticky = "nw", pady = 5, columnspan = 2)
+
+        Data = open(TabList[num][2], "w")
+
+        if Name[-4:] == ".mca":         #Por enquanto esta configurado para os ficheiros 
+                                        # da maquina para AEL. Se for configurado RBS
+                                        #ha-de-se incluir outro if.
+            for i in range(12, len(File) - 1):  
+                self.Counts.append(int(File[i]))
+                self.Channel.append(i-11)
+                Data.write(str(self.Counts[i-12])+"\n")
+
+            # Ciclo for para adquirir os valores dos dados
+
+        Data.close()
+
+        if TabTracker[num] < 0:
+            self.Title = 'Calibration Trial ' + str(-TabTracker[num])
+
+        elif TabTracker[num] > 0: 
+            self.Title = 'Material Trial ' + str(TabTracker[num])
+
+
+        self.figure = Figure(figsize = (6,4), dpi = 100) #A figura contem o grafico
+        self.figure_canvas = FigureCanvasTkAgg(self.figure, TabList[num][1].GraphicFrame) #A class FigureCanvasTkAgg
+        #liga o matplotlib ao tkinter
+
+        NavigationToolbar2Tk(self.figure_canvas, TabList[num][1].GraphicFrame) # Esta linha permite que as ferramentas
+        #do matplotlip aparecam na interface do tkinter
+
+    def subplots(self):
+        #Aqui inicia-se o grafico com os dados e os eixos
+
+        self.axes = self.figure.add_subplot() 
+        self.axes.plot(self.Channel, self.Counts, '.', markersize = 7, label = 'Run')
+        self.axes.set_title(self.Title)
+        self.axes.set_xlabel('Channel')
+        self.axes.set_ylabel('Counts')
+
+        self.figure.canvas.mpl_connect('button_press_event', onclick)
+
+        #Por fim, acrescenta-se a geometria do tkinter
+        self.figure_canvas.get_tk_widget().pack()
+
+    def destroyer(self):
+
+        if self.line:
+            self.line.pop().remove()
+            self.figure_canvas.draw()
+
+
+    def threshold(self, height):
+
+        if self.line:
+            self.line.pop().remove()
+
+        self.line.append(self.axes.axhline(y = height, color = 'r', linestyle = '-'))
+        self.figure_canvas.draw()
+
+############################################################################
 Dir = os.scandir('Files\Sources\Values')
 source_list = []
 for entry in Dir:
@@ -1415,25 +1547,42 @@ tabtype11 = Tabs()
 tabtype12 = Tabs()
 tabtype13 = Tabs()
 
+graph1 = Plot()
+graph2 = Plot()
+graph3 = Plot()
+graph4 = Plot()
+graph5 = Plot()
+graph6 = Plot()
+graph7 = Plot()
+graph8 = Plot()
+graph9 = Plot()
+graph10 = Plot()
+graph11 = Plot()
+graph12 = Plot()
+graph13 = Plot()
+
+
 TabList = [
-    [tab1, tabtype1, "Temp\Data1.txt", "Temp\Analysis1.txt", "Temp\Result1.txt"], 
-    [tab2, tabtype2, "Temp\Data2.txt", "Temp\Analysis2.txt", "Temp\Result2.txt"], 
-    [tab3, tabtype3, "Temp\Data3.txt", "Temp\Analysis3.txt", "Temp\Result3.txt"], 
-    [tab4, tabtype4, "Temp\Data4.txt", "Temp\Analysis4.txt", "Temp\Result4.txt"], 
-    [tab5, tabtype5, "Temp\Data5.txt", "Temp\Analysis5.txt", "Temp\Result5.txt"], 
-    [tab6, tabtype6, "Temp\Data6.txt", "Temp\Analysis6.txt", "Temp\Result6.txt"],
-    [tab7, tabtype7, "Temp\Data7.txt", "Temp\Analysis7.txt", "Temp\Result7.txt"], 
-    [tab8, tabtype8, "Temp\Data8.txt", "Temp\Analysis8.txt", "Temp\Result8.txt"], 
-    [tab9, tabtype9, "Temp\Data9.txt", "Temp\Analysis9.txt", "Temp\Result9.txt"], 
-    [tab10, tabtype10, "Temp\Data10.txt", "Temp\Analysis10.txt", "Temp\Result10.txt"], 
-    [tab11, tabtype11, "Temp\Data11.txt", "Temp\Analysis11.txt", "Temp\Result11.txt"], 
-    [tab12, tabtype12, "Temp\Data12.txt", "Temp\Analysis12.txt", "Temp\Result12.txt"], 
-    [tab13, tabtype13, "Temp\Data13.txt", "Temp\Analysis13.txt", "Temp\Result13.txt"]
+    [tab1, tabtype1, "Temp\Data1.txt", "Temp\Analysis1.txt", "Temp\Result1.txt", graph1], 
+    [tab2, tabtype2, "Temp\Data2.txt", "Temp\Analysis2.txt", "Temp\Result2.txt", graph2], 
+    [tab3, tabtype3, "Temp\Data3.txt", "Temp\Analysis3.txt", "Temp\Result3.txt", graph3], 
+    [tab4, tabtype4, "Temp\Data4.txt", "Temp\Analysis4.txt", "Temp\Result4.txt", graph4], 
+    [tab5, tabtype5, "Temp\Data5.txt", "Temp\Analysis5.txt", "Temp\Result5.txt", graph5], 
+    [tab6, tabtype6, "Temp\Data6.txt", "Temp\Analysis6.txt", "Temp\Result6.txt", graph6],
+    [tab7, tabtype7, "Temp\Data7.txt", "Temp\Analysis7.txt", "Temp\Result7.txt", graph7], 
+    [tab8, tabtype8, "Temp\Data8.txt", "Temp\Analysis8.txt", "Temp\Result8.txt", graph8], 
+    [tab9, tabtype9, "Temp\Data9.txt", "Temp\Analysis9.txt", "Temp\Result9.txt", graph9], 
+    [tab10, tabtype10, "Temp\Data10.txt", "Temp\Analysis10.txt", "Temp\Result10.txt", graph10], 
+    [tab11, tabtype11, "Temp\Data11.txt", "Temp\Analysis11.txt", "Temp\Result11.txt", graph11], 
+    [tab12, tabtype12, "Temp\Data12.txt", "Temp\Analysis12.txt", "Temp\Result12.txt", graph12], 
+    [tab13, tabtype13, "Temp\Data13.txt", "Temp\Analysis13.txt", "Temp\Result13.txt", graph13]
 ]
 
 TabTracker = []
 
 #############################################################################################
+Tabs.tab_change(1)
+Notebook.notebook.select(1)
 
 os.mkdir('Temp') # Pasta onde serao guardados os ficheiros temporarios
 window.run()
