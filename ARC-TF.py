@@ -6,14 +6,12 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog as fd
-#from PIL import ImageTk, Image
-#from tkinter.messagebox import showinfo
-#from matplotlib.pylab import *
-import matplotlib.pyplot as plt
+from PIL import ImageTk, Image
+import webbrowser
+from matplotlib.pyplot import axhline
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
-#from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
 import os
 import math
@@ -34,11 +32,8 @@ def Current_Tab():
         return final_num
     
     elif final_num < 0: # Para o caso do utilizador se encontrar na tab dos resultados finais
-        wng.popup('Final Results Tab Warning')
-        tk.Label(wng.warning, text = 'Most actions aren\'t available for this Tab.\n').pack()
-        tk.Label(wng.warning, text = 'Please open a new Tab\n\n').pack()
-        tk.Button(wng.warning, text = 'Return', command = lambda: wng.warning.destroy()).pack()
-
+        pass
+  
 #########################################################################################
 # Apaga as widgets dentro de frames e tira a geometria de frames, para fazer renovacao
 # de dados. Podera conter, eventualmente, mais frames do que contem agora
@@ -47,9 +42,13 @@ def ClearWidget(Frame, parameter):
     num = Current_Tab()
 
     if Frame == 'Graphic':
-        for widgets in TabList[num][1].GraphicFrame.winfo_children():
-            widgets.destroy()         # Este 'for' destroi grafcos antigos e constoi novos
+        for widget in TabList[num][1].GraphicFrame.winfo_children():
+            widget.destroy()         # Este 'for' destroi grafcos antigos e constoi novos
         TabList[num][1].GraphicFrame.grid_remove()
+        widget = 0
+        for widget in TabList[num][1].Extra_Frame.winfo_children():
+            widget.destroy()
+        TabList[num][1].Extra_Frame.grid_remove()
 
     elif Frame == 'Algorithm':
         for widget in TabList[num][1].AlgFrame.winfo_children(): 
@@ -83,6 +82,12 @@ def ClearWidget(Frame, parameter):
             widget.destroy()
         wng.warning.destroy()
 
+    elif Frame == 'Image': # Remove a imagem sempre que se clicar a comecar outra
+        for widget in wng.decay.winfo_children():
+            widget.destroy()
+        wng.decay.destroy()
+
+
     elif Frame == 'Linear': # Remove os resultados da regressao linear
         for widget in TabList[num][1].LinearRegressionFrame.winfo_children():
             widget.destroy()
@@ -109,10 +114,15 @@ def ClearWidget(Frame, parameter):
             os.remove(TabList[num][4])
 
     elif Frame == 'Everything': # Esta e a opcao que da reset a tudo numa tab
-        for widgets in TabList[num][1].GraphicFrame.winfo_children():
-            widgets.destroy()        
+        for widget in TabList[num][1].GraphicFrame.winfo_children():
+            widget.destroy()        
         widget = 0
         TabList[num][1].GraphicFrame.grid_remove()
+
+        for widget in TabList[num][1].Extra_Frame.winfo_children():
+            widget.destroy()
+        TabList[num][1].Extra_Frame.grid_remove()
+        widget = 0
         
         for widget in TabList[num][1].AlgFrame.winfo_children(): 
             widget.destroy() 
@@ -156,16 +166,20 @@ def ClearWidget(Frame, parameter):
 # Funcao que le os ficheiros e devolve listas. Estas podem ser 2d ou 1d, podem ter separadores
 # diferentes (entre as colunas) e pode devolver as listas como strings, floats ou ints
 ############################################################################################
-def File_Reader(Document, Separator, Decimal):
+def File_Reader(Document, Separator, Decimal, Upload):
 
-    OpenFile = open(Document, 'r') #Abre o documento
-    lines = OpenFile.read() # Le o ficheiro como string
-    OpenFile.close() # Fecha o documento
+    num = Current_Tab()
+
+    with open(Document, 'r') as OpenFile: # Abre (e fecha) o documento
+        lines = OpenFile.read() # Le os dados como string   
     lines = lines.splitlines() #Separa o array em linhas
 
+    if Upload == 'Yes':
+        TabList[num][1].Real_Time.set(lines[8] + ' s')        
+
     if Separator != '0': # O separator verifica se temos uma matriz ou um vetor
-                        # caso seja '0', o documento a ser lido e um vetor, e nao e necessario separar por
-                        # colunas.
+                        # caso seja '0', o documento a ser lido e um vetor, e nao e necessario 
+                        # separar por colunas
 
         Results = [[0 for i in range(1)]for j in range(len(lines))] # Inicio de uma matriz com entradas 
                                                                     # independentes
@@ -210,6 +224,29 @@ def File_Reader(Document, Separator, Decimal):
 
             return lines
 
+##############################################################################################
+# Devolve o numero de algarismos significativos com base numa incerteza
+###############################################################################################
+def Precision(value):
+
+    counter = 0
+    number = float(value)
+
+    if abs(number) < 1:
+
+        while abs(number) < 1:
+            number = number * 10
+            counter += 1
+
+        counter = counter + 1
+
+        return counter
+    
+    elif abs(number) > 1:
+
+        counter = 0
+        return counter
+
 ############################################################################################
 # Le os resultados finais e exibe os na primeira tab
 ############################################################################################
@@ -228,12 +265,18 @@ def Final_Results():
         if tracker < 0 and TabTracker[i] < 0:
             if os.path.isfile(TabList[i][4]) == True:
 
-                Results = File_Reader(TabList[i][4], '0', 'Yes')
+                if TabList[i][1].energy.get() == 1000:
+                    unit_energy = 'MeV'
+
+                elif TabList[i][1].energy.get() == 1:
+                    unit_energy = 'keV'
+
+                Results = File_Reader(TabList[i][4], '0', 'String', 'No')
                 tk.Label(Notebook.Calib_Result2, text = 'Calibration Trial ' + 
                         str(-TabTracker[i]) + ' - ' +
                         TabList[i][1].Source.get()).grid(row = 4 * i + i, columnspan = 3)
                 tk.Label(Notebook.Calib_Result2, 
-                        text = '(MeV)').grid(row = 4 * i + i + 1, column = 0)
+                        text = '(' + unit_energy + ')').grid(row = 4 * i + i + 1, column = 0)
                 tk.Label(Notebook.Calib_Result2, 
                         text = 'Values').grid(row = 4 * i + i + 1, column = 1)
                 tk.Label(Notebook.Calib_Result2, 
@@ -246,13 +289,17 @@ def Final_Results():
                         text = '').grid(row = 4 * i + i + 4, column = 0)
 
                 tk.Label(Notebook.Calib_Result2, 
-                        text = '%.7f' %(Results[0])).grid(row = 4 * i + i + 2, column = 1)
+                        text = '%.*f' %(int(Results[5]), float(Results[1]))).grid(
+                            row = 4 * i + i + 2, column = 1)
                 tk.Label(Notebook.Calib_Result2, 
-                        text = '%.7f' %(Results[1])).grid(row = 4 * i + i + 2, column = 2)
+                        text = '%.*f' %(int(Results[5]), float(Results[2]))).grid(
+                            row = 4 * i + i + 2, column = 2)
                 tk.Label(Notebook.Calib_Result2, 
-                        text = '%.4f' %(Results[2])).grid(row = 4 * i + i + 3, column = 1)
+                        text = '%.*f' %(int(Results[6]), float(Results[3]))).grid(
+                            row = 4 * i + i + 3, column = 1)
                 tk.Label(Notebook.Calib_Result2, 
-                        text = '%.4f' %(Results[3])).grid(row = 4 * i + i + 3, column = 2)
+                        text = '%.*f' %(int(Results[6]), float(Results[4]))).grid(
+                            row = 4 * i + i + 3, column = 2)
                 
                 Notebook.calib_canvas.update_idletasks()    
                 Notebook.calib_canvas.config(scrollregion = Notebook.Calib_Result2.bbox())
@@ -263,9 +310,17 @@ def Final_Results():
         if tracker > 0 and TabTracker[i] > 0:
             if os.path.isfile(TabList[i][4]) == True and os.path.isfile(TabList[i][3]) == True:
 
-                Results = File_Reader(TabList[i][4], '0', 'Yes')
-                Peaks = File_Reader(TabList[i][3], ',', 'No')
+                Results = File_Reader(TabList[i][4], '0', 'Yes', 'No')
+                Peaks = File_Reader(TabList[i][3], ',', 'No', 'No')
                 Peaks.sort()
+
+                units_list = ['nm', '\u03bcm',
+                  '\u03bcg' + ' cm' + '{}'.format('\u207B' + '\u00b2'),
+                  '10' + '{}'.format('\u00b9' + '\u2075') + ' Atoms' 
+                   + ' cm' + '{}'.format('\u207B' + '\u00b2')]
+
+                units_values = [10.0**9, 10.0**6, 0.0, -1.0]
+                index = units_values.index(TabList[i][1].units.get())
 
                 size = len(Peaks)
 
@@ -281,22 +336,25 @@ def Final_Results():
                                  text = 'Thickness').grid(row = (4 + size) * i + i + j + 1, column = 1)
                     
                     tk.Label(Notebook.Mat_Result2, 
-                             text= str(Peaks[j][0])).grid(row = (4 + size) * i + i + j + 2, 
+                             text = str(Peaks[j][0])).grid(row = (4 + size) * i + i + j + 2, 
                                                           column = 0)
                     tk.Label(Notebook.Mat_Result2, 
-                             text= str(Results[j]) + ' nm').grid(row = (4 + size) * i + i + j + 2, 
-                                                          column = 1)
+                             text = '%.*f' % (int(Results[-1]), Results[j]) + 
+                             ' ' + units_list[index] ).grid(row = (4 + size) * i + i + j + 2, 
+                                                                  column = 1)
                     
                 tk.Label(Notebook.Mat_Result2, 
                                  text = '\nAverage').grid(row = (4 + size) * i + i + j + 3, column = 0)
                 tk.Label(Notebook.Mat_Result2, 
                                  text = 'Uncertainty').grid(row = (4 + size) * i + i + j + 4, column = 0)
                 tk.Label(Notebook.Mat_Result2, 
-                                 text = '\n' + str(Results[j + 1]) 
-                                 + ' nm').grid(row = (4 + size) * i + i + j + 3, column = 1)
+                                 text = '\n' + '%.*f' % (int(Results[-1]), Results[j + 1]) 
+                                 + ' ' + units_list[index]).grid(
+                                     row = (4 + size) * i + i + j + 3, column = 1)
                 tk.Label(Notebook.Mat_Result2, 
-                                 text = str(Results[j + 2]) 
-                                 + ' nm').grid(row = (4 + size) * i + i + j + 4, column = 1)
+                                 text = '%.*f' % (int(Results[-1]), Results[j + 2]) 
+                                 + ' ' + units_list[index]).grid(
+                                     row = (4 + size) * i + i + j + 4, column = 1)
                 tk.Label(Notebook.Mat_Result2, 
                                  text = '').grid(row = (4 + size) * i + i + j + 5, 
                                                                   columnspan = 2)
@@ -361,13 +419,20 @@ def Calib_Choice():
         tk.Button(wng.warning, text = 'Return', command = lambda: ClearWidget('Popup', 0)).pack()
 
 ################################################################################################
-# Calcula a espessura por cada pico
+# Calcula a espessura por cada pico e a media das espessuras
 ################################################################################################
 def Final_Calculation():
 
     num = Current_Tab()
     ClearWidget('Thickness', 0)
     TabList[num][1].ThicknessFrame.grid(row = 5, columnspan = 3, pady = 5)
+    units_list = ['nm', '\u03bcm',
+                  '\u03bcg' + ' cm' + '{}'.format('\u207B' + '\u00b2'),
+                  '10' + '{}'.format('\u00b9' + '\u2075') + ' Atoms' 
+                   + ' cm' + '{}'.format('\u207B' + '\u00b2')]
+
+    units_values = [10.0**9, 10.0**6, 0.0, -1.0]
+    index = units_values.index(TabList[num][1].units.get())
 
     Material_choice = TabList[num][1].Mat.get() # Determina qual o ficheiro do material a ler
     Material_choice = 'Files\Materials\\' +  Material_choice + '.txt'
@@ -376,7 +441,7 @@ def Final_Calculation():
     intersect = 0
     points = []
     regressions_index = []
-    material_data = File_Reader(Material_choice, '|', 'Yes') #Daqui obtemos a lista que ira guardar
+    material_data = File_Reader(Material_choice, '|', 'Yes', 'No') #Daqui obtemos a lista que ira guardar
     # as energias e o stopping power do material em uso
 
 # Este ciclo determina a tab de calibracao cuja regressao foi selecionada para uso
@@ -398,28 +463,36 @@ def Final_Calculation():
             Aux_Channel.append(TabList[regressions_index[0]][1].DecayList[j].get()) # de stopping powers
     # Como a fonte e a mesma para todas as calibracoes, nao importa qual delas e selecionada
 
+
     Aux_Channel.sort()
     peaks = len(Aux_Channel) # Para referencia do tamanho
 
     for i in range(0, len(regressions_index)):
         
-        Aux_Regression = File_Reader(TabList[regressions_index[i]][4], '0', 'Yes') # Aqui vamos buscar as
-        # regressoes lineares para fazer uma media
+        Aux = File_Reader(TabList[regressions_index[i]][4], '0', 'String', 'No') # Aqui 
+        #vamos buscar as regressoes lineares para fazer uma media
 
-        slope = Aux_Regression[0] + slope # Acumular o declive
-        intersect = Aux_Regression[2] + intersect # Acumular a ordenada na origem
+        if Aux[0] == 'keV':
+            placeholder1 = float(Aux[1]) * 1000
+            Aux[1] = str(placeholder1)
+            placeholder2 = float(Aux[3]) * 1000
+            Aux[3] = str(placeholder2)
 
-    points = File_Reader(TabList[num][3], ',', 'No') # Analise dos picos de materiais em estudo
+        slope = float(Aux[1]) + slope # Acumular o declive
+        intersect = float(Aux[3]) + intersect # Acumular a ordenada na origem
+
+    points = File_Reader(TabList[num][3], ',', 'No', 'No') # Analise dos picos de materiais em estudo
     points.sort() # Ordenar os picos por ordem crescente
     slope = slope / len(regressions_index)  # Buscar a media do declive
     intersect = intersect / len(regressions_index) # Buscar a ordenada na origem
 
     i = 0
     j = 0
-    Aux_Regression.clear()     
+    Aux.clear()     
     thickness = 0
 
-    tk.Label(TabList[num][1].ThicknessFrame, text = 'Thickness [nm]').grid(row = 0, column = 0)
+    tk.Label(TabList[num][1].ThicknessFrame, 
+             text = 'Thickness (' + units_list[index] + ')').grid(row = 0, column = 0)
     tk.Label(TabList[num][1].ThicknessFrame, text = 'Channel').grid(row = 0, column = 1)
 
     for j in range(0, peaks):
@@ -433,44 +506,63 @@ def Final_Calculation():
                                                 # o numero atomico
             if material_data[i][0] >= Temp[j] and material_data[i][0] <= Aux_Channel[j]:
 
-                stopping_power = material_data[i][1] * material_data[0][1]
-                stopping_power = (10000 / stopping_power) # Stopping power a dividir pelo step
-                                                          # e a multiplicar para obter as unidades em nm
-                summed_values = summed_values + stopping_power # O somatorio que resulta na aproximacao da espessura
+                stopping_power = ( 1 / material_data[i][1]) # Stopping power a dividir pelo step
+                summed_values = summed_values + stopping_power # O somatorio que 
+                #resulta na aproximacao da espessura
+                
 
-        Aux_Regression.append(summed_values) # Lista que guarda a espessura por perda de energia
-        thickness = thickness + (Aux_Regression[j]) # Espessua media
+        if index == 0 :
+            summed_values = summed_values / material_data[0][1]
+            summed_values = summed_values * 10000
 
-        tk.Label(TabList[num][1].ThicknessFrame, text = '%.3f' %(Aux_Regression[j])).grid(row = j + 1, column = 0)
-        tk.Label(TabList[num][1].ThicknessFrame, text = str(points[j][0])).grid(row = j + 1, column = 1)
+        if index == 1:
+            summed_values = summed_values / material_data[0][1]
+            summed_values = summed_values * 10
+
+        if index == 2:
+            summed_values = summed_values *  0.001
+
+        if index == 3:
+            summed_values = summed_values * 1000 * ((6.02214076**(-23)) / material_data[0][0])
+
+        Aux.append(summed_values) # Lista que guarda a espessura por perda de energia
+        thickness = thickness + (Aux[j]) # Espessua media
+
+        tk.Label(TabList[num][1].ThicknessFrame, text = '%.2f' % (Aux[j]) ).grid(
+                row = j + 1, column = 0)
+        tk.Label(TabList[num][1].ThicknessFrame, text = str(points[j][0])).grid(
+                row = j + 1, column = 1)
+
 
         if j == peaks - 1: # No ultimo run do ciclo for
             
             i = 0
-            thickness = thickness / len(Aux_Regression) # A fazer a media da espessura
+            thickness = thickness / len(Aux) # A fazer a media da espessura
  
             my_file = open(TabList[num][4], 'w')
-            for i in range(0, len(Aux_Regression)): # Por fim faz se a incerteza da espessura media
-                uncertain = (Aux_Regression[i] - thickness)**2 + uncertain
-                my_file.write('%.3f' %(Aux_Regression[i]))
+            for i in range(0, len(Aux)): # Por fim faz se a incerteza da espessura media
+                uncertain = (Aux[i] - thickness)**2 + uncertain
+                my_file.write('%.3f' %(Aux[i]))
                 my_file.write('\n')
 
             uncertain = uncertain / (peaks - 1)
             uncertain = math.sqrt(uncertain) # Ultimo passo que resulta na espessura certa
 
-            my_file.write('%.3f' %(thickness))
-            my_file.write('\n')
-            my_file.write('%.3f' %(uncertain))
+            sig_fig = Precision(('%.2g' % (uncertain)))
+
+            my_file.write(str(thickness) + '\n')
+            my_file.write(str(uncertain) + '\n')
+            my_file.write(str(sig_fig))
             my_file.close()
 
     tk.Label(TabList[num][1].ThicknessFrame, 
-             text = 'Average Thickness [nm]').grid(row = j + 2, column = 0)
+             text = 'Average Thickness (' + units_list[index] + ')').grid(row = j + 2, column = 0)
     tk.Label(TabList[num][1].ThicknessFrame, 
-             text = 'Uncertainty [nm]').grid(row = j + 2, column = 1)
+             text = 'Uncertainty (' + units_list[index] + ')').grid(row = j + 2, column = 1)
     tk.Label(TabList[num][1].ThicknessFrame, 
-             text = '%.3f' %(thickness)).grid(row = j + 3, column = 0)
+             text = '%.*f' %(sig_fig, thickness)).grid(row = j + 3, column = 0)
     tk.Label(TabList[num][1].ThicknessFrame, 
-             text = '%.3f' %(uncertain)).grid(row = j + 3, column = 1)
+             text = '%.*f' %(sig_fig, uncertain)).grid(row = j + 3, column = 1)
     tk.Button(TabList[num][1].ThicknessFrame, 
               command = lambda: ClearWidget('Thickness', 1),
               text = 'Reset Results').grid(row = j + 4, columnspan = 2)
@@ -485,7 +577,7 @@ def ResultManager():
     ClearWidget('Results', 0) # A funcao e evocada para dar reset aos valores anteriores
     TabList[num][1].ResultFrame.grid(row = 3, columnspan = 2, pady = 5)
 
-    values = File_Reader(TabList[num][3], ',', 'No') #Esta leitura devolve os valores de channel e counts
+    values = File_Reader(TabList[num][3], ',', 'No', 'No') #Esta leitura devolve os valores de channel e counts
 
     for j in range(0, len(values)): # O ciclo for apenas cria os checkbuttons e as labels para depois guardar
                                     # os valores a serem apagados/usados nas funcoes seguintes
@@ -515,7 +607,7 @@ def Unchecked_Results():
         Eraser.append(widget) # Aqui guardamos todos os widgets que exibem os resultados.
                                 # E necessario guardar num vetor, para que depois sejam apagados os corretos
 
-    values = File_Reader(TabList[num][3], '0', 'String') # Aqui vao se buscar os valores de channel e counts
+    values = File_Reader(TabList[num][3], '0', 'String', 'No') # Aqui vao se buscar os valores de channel e counts
                                                         # Como nao se fazem contas, apenas utilizamos a linha de
                                                         # string que contem ambos valores
     
@@ -572,7 +664,7 @@ def Linearize():
     i = 0
     xaxis = []
     yaxis = []
-    values = File_Reader(TabList[num][3], ',', 'No') # Le os dados dos picos
+    values = File_Reader(TabList[num][3], ',', 'No', 'No') # Le os dados dos picos
 
     for i in range(0, len(values)):
         xaxis.append(values[i][0])  # Junto os canais apenas ao valor xaxis
@@ -640,25 +732,58 @@ def Linearize():
         sigma_m = math.sqrt(sigma / ( Placeholder1 - (Placeholder2/len(xvalues))))
         sigma_b = math.sqrt((sigma * Placeholder1)/((len(xvalues) * Placeholder1) - Placeholder2))
 
+        if TabList[num][1].energy.get() == 1000:
+            unit_string = 'MeV'
+            significant_digits_m = Precision('%.2g' % (sigma_m))
+            significant_digits_b = Precision('%.2g' % (sigma_b))
+
+        elif TabList[num][1].energy.get() == 1:
+
+            unit_string = 'keV'
+            m = m * 0.001
+            sigma_m = sigma_m * 0.001
+            b = b * 0.001
+            sigma_b = sigma_b * 0.001
+
+            if sigma_m > 1:
+                significant_digits_m = 0
+
+            else:
+                significant_digits_m = Precision('%.2g' % (sigma_m))
+            
+            if sigma_b > 1:
+                significant_digits_b = 0
+                            
+            else:
+                significant_digits_b = Precision('%.2g' % (sigma_b))
+
         with open(TabList[num][4], 'w') as my_file:
             # Aqui, escrevem se os resultados num documento txt para outras funcoes
             # poderem aceder
-            my_file.write('%.7f' %(m) + '\n')
-            my_file.write('%.7f' %(sigma_m) + '\n')
-            my_file.write('%.7f' %(b) + '\n')
-            my_file.write('%.7f' %(sigma_b))
+            my_file.write(unit_string + '\n')
+            my_file.write(str(m) + '\n')
+            my_file.write(str(sigma_m) + '\n')
+            my_file.write(str(b) + '\n')
+            my_file.write(str(sigma_b) + '\n')
+            my_file.write(str(significant_digits_m) + '\n')
+            my_file.write(str(significant_digits_b))
 
         # Por fim, escreve se no GUI os resultados obtidos
-        tk.Label(TabList[num][1].LinearRegressionFrame, text = '(MeV)').grid(row = 0, column = 0)
+        tk.Label(TabList[num][1].LinearRegressionFrame, text = '(' + unit_string + ')').grid(
+            row = 0, column = 0)
         tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Values').grid(row = 0, column = 1)
         tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Uncertainty').grid(row = 0, column = 2)
         tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Slope').grid(row = 1, column = 0)
         tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Intersect').grid(row = 2, column = 0)
 
-        tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.7f' %(m)).grid(row = 1, column = 1)
-        tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.7f' %(sigma_m)).grid(row = 1, column = 2)
-        tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.4f' %(b)).grid(row = 2, column = 1)
-        tk.Label(TabList[num][1].LinearRegressionFrame, text = '%.4f' %(sigma_b)).grid(row = 2, column = 2)
+        tk.Label(TabList[num][1].LinearRegressionFrame, 
+                 text = '%.*f' %(significant_digits_m, m)).grid(row = 1, column = 1)
+        tk.Label(TabList[num][1].LinearRegressionFrame, 
+                 text = '%.*f' % (significant_digits_m ,sigma_m)).grid(row = 1, column = 2)
+        tk.Label(TabList[num][1].LinearRegressionFrame, 
+                 text = '%.*f' %(significant_digits_b, b)).grid(row = 2, column = 1)
+        tk.Label(TabList[num][1].LinearRegressionFrame, 
+                 text = '%.*f' % (significant_digits_b  ,sigma_b)).grid(row = 2, column = 2)
 
         tk.Button(TabList[num][1].LinearRegressionFrame, text = 'Clear Regression', 
                   command = lambda: ClearWidget('Linear', 1 )).grid(row = 3, column = 0, columnspan = 3)
@@ -670,7 +795,7 @@ def Linearize():
 def ManSelec_Alg(Valuex, Valuey):
 
     num = Current_Tab()
-    Counts = File_Reader(TabList[num][2], '0', 'No')
+    Counts = File_Reader(TabList[num][2], '0', 'No', 'No')
 
     AuxList = []   #Lista para guardar minimos quadrados
 
@@ -700,7 +825,7 @@ def Threshold_Alg():
 
     num = Current_Tab()
 
-    Counts = File_Reader(TabList[num][2], '0', 'No')
+    Counts = File_Reader(TabList[num][2], '0', 'No', 'No')
 
     Threshold = TabList[num][1].Algorithm.get()
     yaxis = []
@@ -711,6 +836,9 @@ def Threshold_Alg():
     i = 0
     j = 0
 
+    cut = TabList[num][1].channels_cut.get()
+    width = TabList[num][1].peaks_widths.get()
+
 #Just iterate of the values of the list itself. Each "count" is an element of Counts
     for count in (Counts):
        #Remember, if you hit a peak the condition 
@@ -718,7 +846,7 @@ def Threshold_Alg():
        #add the total sum of the area under the peak 
        # (this may even be useful for FWHM calculations).
        
-        if count > Threshold and i > 60:
+        if count > Threshold and i > cut:
 
                 current_peak_counts += count
                 current_peak.append(count)
@@ -739,7 +867,7 @@ def Threshold_Alg():
                     xaxis.append(counter + current_peak.index(max(current_peak)))
 
                     if len(xaxis) > 1:
-                        if xaxis[j] - xaxis[j-1] < 20:
+                        if xaxis[j] - xaxis[j-1] < width:
                             
                             decider = max(yaxis[j-1], yaxis[j])
 
@@ -759,9 +887,6 @@ def Threshold_Alg():
                 
         i += 1
 
-
-
-
     if os.path.isfile(TabList[num][3]) == True:
         with open(TabList[num][3], 'a') as results:
             for i in range(len(xaxis)):
@@ -775,15 +900,39 @@ def Threshold_Alg():
     #If the last peak is not added because the data ends with a peak (could be a problem, you should check it)
     ResultManager()
 
-################################################################################
-# Gere o evento de obtencao de pontos diretamente do grafico
+###############################################################################
+# Esta e a funcao que abre as imagens da cadeia de decaimento
 ################################################################################
 def showimage():
     num = Current_Tab()
-    wng.popup('Decay Chain')
-    
+    alphas = TabList[num][1].Source.get()
+    Dir = os.scandir('Files\Sources\Images')
 
+    for entry in Dir:
+        if entry.is_file():
+            temp = (os.path.splitext(entry.name))
+            if alphas == temp[0]:
+                picture = 'Files\Sources\Images\\' + alphas + temp[1]
 
+                if alphas == '226Ra':
+                    domain = 'https://www.nist.gov/image-23773'
+
+                elif alphas == '232U':
+                    domain = 'https://www.nuclear-power.com/nuclear-power-plant/nuclear-fuel/uranium/uranium-232/decay-half-life-uranium-232/'
+
+                else:
+                    domain = ''
+
+                try:
+                    ClearWidget('Image', 0)
+                    wng.Images('Decay Chain of ' + alphas, picture, domain)
+
+                except:
+                    wng.Images('Decay Chain of ' + alphas, picture, domain)
+
+################################################################################
+# Gere o evento de obtencao de pontos diretamente do grafico
+################################################################################
 def onclick(event):
 
     num = Current_Tab()
@@ -804,15 +953,15 @@ def DataUploader():
 
     num = Current_Tab()
 
-    domain = (('text files', '*.mca'), ('all files', '*.*')) # Aqui limitamos os ficheiros que podem ser abertos
-    filename = fd.askopenfilename(title = 'Open a file', initialdir = '.', filetypes = domain) 
+    domain = (('Text Files', '*.mca'), ('All Files', '*.*')) # Aqui limitamos os ficheiros que podem ser abertos
+    filename = fd.askopenfilename(title = 'Open a file', initialdir = ',', filetypes = domain) 
     # Faz a ligacao tkinter - janela do SO para abrir o ficheiro de dados
 
     if not filename:
         pass # Certifica que o programa nao queixa caso nao seja efetuado um upload
 
     else:
-        file = File_Reader(filename, '0', 'string') # Aqui le se o ficheiro que foi feito o upload
+        file = File_Reader(filename, '0', 'string', 'Yes') # Aqui le se o ficheiro que foi feito o upload
         TabList[num][5].Structure(file, filename)    # Logo de seguida faz se o grafico
         TabList[num][5].subplots()
         value = TabList[num][1].Algorithm.get()
@@ -865,7 +1014,6 @@ def SourceReader(*args):
     Alpha = 'Files\Sources\Values\\' +  Alpha + '.txt' # Esta adicao garante que o programa 
                                                     #encontra o ficheiro pretendido
 
-    Decay = File_Reader 
     with open(Alpha, 'r') as file: # Aqui vai-se buscar todas as opcoes possiveis contidas no ficheiro
                                     # das fontes de radiacao
         Decay = [float(line) for line in file]
@@ -879,7 +1027,7 @@ def SourceReader(*args):
         checkbutton.select()
 
     tk.Button(TabList[num][1].SourceOptionsFrame, # Mostra uma imagem da cadeia 
-              text = 'Show Decay Chain').grid(row = i + 1, column = 0)
+              text = 'Show Decay Chain', command = showimage).grid(row = i + 1, column = 0)
     tk.Button(TabList[num][1].SourceOptionsFrame, text = 'Linear Regression',  # Efetua a regressao
                                                     # linear e poe os resultados na primeira tab
               command = Final_Results).grid(row = i + 1, column = 1)
@@ -935,6 +1083,21 @@ def on_entry_change(*args):
     except:
         pass
 
+##############################################################################
+# Apaga os ficheiros listados e recebidos, faz parte do File_Manager
+#############################################################################
+def Delete(deletes, names, directory, last):
+
+    dir = os.getcwd()
+
+    directory = dir + '\\' + directory + '\\'
+
+    for i in range(0, len(deletes)):
+        if deletes[i].get() == 1:
+            os.remove(directory + names[i] + last)
+
+    wng.warning.destroy()
+
 #############################################################################
 # Esta funcao deixa dar upload ou apagar ficheiros para a pasta de dados
 # permanentes que utiliza
@@ -942,27 +1105,44 @@ def on_entry_change(*args):
 def File_Manager(Choice, Nature, Action):
 
     if Choice == 'Source':
+        
         if Nature == 1:
             if Action == 1:
-                filename = fd.askopenfilename(filetypes = (('text files', '*.txt'), ('all files', '*.*')), 
+                filename = fd.askopenfilename(filetypes = (('Text Files', '*.txt'), ('All Files', '*.*')), 
                                               title = 'Add Alpha Source Energy File')
+                
                 dir = os.getcwd()
-                dir = dir + '\Files\Sources\Values\\'
+                dir = dir + '\Files\Sources\Values'
                 if not filename:
                     pass
                 else:
                     copy2(filename, dir, follow_symlinks=True)
-            
-            else:
-                dir = os.getcwd()
-                dir = dir + '\Files\Sources\Values\\'
 
-                filename = fd.askopenfilename(filetypes = (('text files', '*.txt'), ('all files', '*.*')),
-                                              initialdir = dir, title = 'Delete Alpha Source File')
-                if not filename:
-                    pass
-                else:
-                    os.remove(filename)
+            else:
+
+                domain = 'Files\Sources\Values'
+                dir = os.scandir(domain)
+                wng.popup('Delete Alpha Source Files')
+                name_list = []
+                delete_list = []
+
+                for entry in dir:
+                    if entry.is_file():
+                        temp = (os.path.splitext(entry.name))
+                        name_list.append(temp[0])
+                        delete_list.append(tk.IntVar())
+
+                tk.Label(wng.warning, text = 'Files available for deletion\n').pack()
+
+                for i in range(0, len(name_list)):
+                    tk.Checkbutton(wng.warning, text = name_list[i], variable = delete_list[i],
+                                   onvalue = 1, offvalue = 0).pack()
+                                        
+                tk.Button(wng.warning, command = lambda: Delete(delete_list, name_list, domain, '.txt'),
+                           text = 'Delete Files').pack()
+                
+                tk.Button(wng.warning, command =  lambda: wng.warning.destroy(), 
+                          text = 'Return').pack()
                 
             Dir = os.scandir('Files\Sources\Values')
             source_list.clear()
@@ -970,11 +1150,11 @@ def File_Manager(Choice, Nature, Action):
                 if entry.is_file():
                     temp = (os.path.splitext(entry.name))
                     source_list.append(temp[0])
-
+                
         elif Nature == 0:
             if Action == 1:
-                filename = fd.askopenfilename(filetypes = (('image files', '.jpg .jpeg .pgn'), 
-                                                           ('all files', '*.*')), 
+                filename = fd.askopenfilename(filetypes = (('Image Files', '.jpg .jpeg .pgn'), 
+                                                           ('All Files', '*.*')), 
                                               title = 'Add Alpha Source Energy Decay Image')
                 dir = os.getcwd()
                 dir = dir + '\Files\Sources\Images\\'
@@ -984,21 +1164,35 @@ def File_Manager(Choice, Nature, Action):
                     copy2(filename, dir, follow_symlinks=True)
             
             else:
-                dir = os.getcwd()
-                dir = dir + '\Files\Sources\Images\\'
 
-                filename = fd.askopenfilename(filetypes = (('image files', '.jpg .jpeg .pgn'), 
-                                                            ('all files', '*.*')),
-                                              initialdir = dir, title = 'Delete Alpha Source Decay Image')
-                if not filename:
-                    pass
-                else:
-                    os.remove(filename)
+                domain = 'Files\Sources\Images'
+                dir = os.scandir(domain)
+                wng.popup('Delete Alpha Source Chain Images')
+                name_list = []
+                delete_list = []
+
+                for entry in dir:
+                    if entry.is_file():
+                        temp = (os.path.splitext(entry.name))
+                        name_list.append(temp[0])
+                        delete_list.append(tk.IntVar())
+
+                tk.Label(wng.warning, text = 'Files available for deletion\n').pack()
+
+                for i in range(0, len(name_list)):
+                    tk.Checkbutton(wng.warning, text = name_list[i], variable = delete_list[i],
+                                   onvalue = 1, offvalue = 0).pack()
+                                        
+                tk.Button(wng.warning, command = lambda: Delete(delete_list, name_list, domain, '.txt'),
+                           text = 'Delete Files').pack()
+                
+                tk.Button(wng.warning, command =  lambda: wng.warning.destroy(), 
+                          text = 'Return').pack()
 
 
     elif Choice == 'Material':
         if Action == 1:
-            filename = fd.askopenfilename(filetypes = (('text files', '*.txt'), ('all files', '*.*')), 
+            filename = fd.askopenfilename(filetypes = (('Text Files', '*.txt'), ('All Files', '*.*')), 
                                             title = 'Add Material File')
             dir = os.getcwd()
             dir = dir + '\Files\Materials\\'
@@ -1008,15 +1202,30 @@ def File_Manager(Choice, Nature, Action):
                 copy2(filename, dir, follow_symlinks=True)
         
         else:
-            dir = os.getcwd()
-            dir = dir + '\Files\Materials\\'
 
-            filename = fd.askopenfilename(filetypes = (('text files', '*.txt'), ('all files', '*.*')),
-                                            initialdir = dir, title = 'Delete Material File')
-            if not filename:
-                pass
-            else:
-                os.remove(filename)
+            domain = 'Files\Materials'
+            dir = os.scandir(domain)
+            wng.popup('Delete Material Files')
+            name_list = []
+            delete_list = []
+
+            for entry in dir:
+                if entry.is_file():
+                    temp = (os.path.splitext(entry.name))
+                    name_list.append(temp[0])
+                    delete_list.append(tk.IntVar())
+
+            tk.Label(wng.warning, text = 'Files available for deletion\n').pack()
+
+            for i in range(0, len(name_list)):
+                tk.Checkbutton(wng.warning, text = name_list[i], variable = delete_list[i],
+                                onvalue = 1, offvalue = 0).pack()
+                                    
+            tk.Button(wng.warning, command = lambda: Delete(delete_list, name_list, domain, '.txt'),
+                        text = 'Delete Files').pack()
+            
+            tk.Button(wng.warning, command =  lambda: wng.warning.destroy(), 
+                        text = 'Return').pack()
             
         Dir = os.scandir('Files\Materials')
         materials_list.clear()
@@ -1025,6 +1234,90 @@ def File_Manager(Choice, Nature, Action):
                 temp = (os.path.splitext(entry.name))
                 materials_list.append(temp[0])
 
+    for i in range(0, len(TabTracker)):
+        if TabTracker[i] < 0:
+            TabList[i][1].Source_Menu.destroy()
+            TabList[i][1].Source_Menu = tk.OptionMenu(TabList[i][1].SourceFrame, TabList[i][1].Source, 
+                          *source_list, command = SourceReader)
+            TabList[i][1].Source_Menu.grid(row = 1, columnspan = 2)
+
+        elif TabTracker[i] > 0:
+            TabList[i][1].Mat_Menu.destroy()
+            TabList[i][1].Mat_Menu = tk.OptionMenu(TabList[i][1].SourceFrame, 
+                                                   TabList[i][1].Mat, *materials_list)
+            TabList[i][1].Mat_Menu.grid(row = 1, columnspan = 2)
+
+#############################################################################
+# Permite guardar os resultados todos obtidos no programa para um txt
+#############################################################################
+def Save_Results():
+    
+    domain = (('Text Files', '*.txt'), ('All Files', '*.*'))
+    file = fd.asksaveasfile(title = 'Save Results', initialdir = ",", filetypes = domain)
+
+    if file:
+
+        file.write('The Results calculated by NUC-RIA\'s ARC-TF were the following:\n\n')
+
+        for i in range(0, len(TabTracker)):
+            j = 0
+            if TabTracker[i] < 0:
+                file.write('Calibration Trial ' + str(-TabTracker[i]) + '\n\n')
+                file.write('The detected Peaks and Counts were: \n \n')
+                Peaks = File_Reader(TabList[i][3], ',', 'No', 'No')
+
+                for j in range(0, len(Peaks)):
+                    file.write('Channel: ' + str(Peaks[j][0]) + '\tCounts: ' + str(Peaks[j][1]) + '\n')
+
+                file.write('\nThe Radiation source used for this trial was: ' + 
+                           TabList[i][1].Source.get() + '\n\n')
+                Regression = File_Reader(TabList[i][4], '0', 'String', 'No', )
+                file.write('The Linear Regression calculated was the following, using ' + 
+                           Regression[0] + ' units.\n\n')
+                
+                file.write('The Slope: ' + '%.*f' % (int(Regression[5]), float(Regression[1])) + ' ' +
+                           u"\u00B1" + ' ' + '%.*f' % (int(Regression[5]), float(Regression[2])) + '\n')
+                file.write('The Intersect: ' + '%.*f' % (int(Regression[6]), float(Regression[3])) + ' ' +
+                           u"\u00B1" + ' ' + '%.*f' % (int(Regression[6]), float(Regression[4])) + '\n')
+                file.write('_______________________________________________________________\n\n')
+
+        i = 0
+        j = 0
+
+        for i in range(0, len(TabTracker)):
+            j = 0
+            if TabTracker[i] > 0:
+                file.write('Material Trial ' + str(TabTracker[i]) + '\n\n')
+                file.write('The detected Channels, Counts and respectful Thickness approximation were:'
+                            + '\n\n')
+                Peaks = File_Reader(TabList[i][3], ',', 'No', 'No')
+                Peaks.sort()
+                thickness = File_Reader(TabList[i][4], '0', 'String', 'No')
+
+                units_list = ['nm', '\u03bcm',
+                  '\u03bcg' + ' cm' + '{}'.format('\u207B' + '\u00b2'),
+                  '10' + '{}'.format('\u00b9' + '\u2075') + ' Atoms' 
+                   + ' cm' + '{}'.format('\u207B' + '\u00b2')]
+
+                units_values = [10.0**9, 10.0**6, 0.0, -1.0]
+                index = units_values.index(TabList[i][1].units.get())
+
+                for j in range(0, len(Peaks)):
+                    file.write('Channel: ' + str(Peaks[j][0]) + '\tCounts: ' + str(Peaks[j][1]) + 
+                               '\tThickness: ' + '%.*f' % (int(thickness[-1]), float(thickness[j])) + 
+                               ' ' + units_list[index] + '\n')
+
+                file.write('\nThe average thickness, of material ' + 
+                           TabList[i][1].Mat.get() + ' was calculated to be: ' + '('
+                           '%.*f' % (int(thickness[-1]), float(thickness[j + 1])) + ' ' + 
+                           ' ' + u" \u00B1 " + 
+                           '%.*f' % (int(thickness[-1]), float(thickness[j + 2])) + ') ' + 
+                           units_list[index] + '\n\n')
+                
+                '%.*f' % (int(Regression[6]), float(Regression[4]))
+                
+                file.write('_______________________________________________________________\n\n')
+      
 #############################################################################
 # A classe do esqueleto, onde esta a barra de ferramentas e a janela principal
 # do programa
@@ -1049,7 +1342,7 @@ class Skeleton:
         __file_menu = tk.Menu(self.menu, tearoff = False) 
         self.menu.add_cascade(label = 'File', menu = __file_menu)
         __file_menu.add_command(label = 'Plot Data', command = DataUploader)
-        __file_menu.add_command(label = "Save Results")
+        __file_menu.add_command(label = "Save Results", command = Save_Results)
         __file_menu.add_separator()
         __file_menu.add_command(label = 'Remove Current Plot',
                                 command = lambda: ClearWidget('Graphic', 0))
@@ -1059,6 +1352,10 @@ class Skeleton:
                                 command = lambda: ClearWidget('Everything', 1) )
         __file_menu.add_separator()
         __file_menu.add_command(label = 'Exit', command = self.main.quit)
+
+            # O bloco de definicoes do programa
+        
+        self.menu.add_command(label = 'Settings', command = lambda: wng.Settings())
 
             # Gere as tabs do programa
         __tabs_menu = tk.Menu(self.menu, tearoff = False)
@@ -1085,10 +1382,16 @@ class Skeleton:
                                  command = lambda: File_Manager('Material', 0, 1))
         __files_data.add_command(label = 'Remove Material File',
                                  command = lambda: File_Manager('Material', 0, 0))
+        
 
+            # Abre o html de Help
+        self.menu.add_command(label = 'Help')
 
-            # Abre o ficheiro Help
-        self.menu.add_command(label = "Help")
+            # Abre o link para o Readme
+        self.menu.add_command(label = "About", command = lambda: webbrowser.open(
+            'https://github.com/AlexVnGit/GUI_thin_films/blob/master/README.md', new = 1))
+        
+        
 
         
     def run(self):
@@ -1109,8 +1412,150 @@ class Warnings:
         self.warning.geometry('700x300')
         self.warning.grab_set()
 
-    def Images(self): # Para as imagens dos decaimentos
-        ()
+    def Images(self, name, picture, site): # Para as imagens dos decaimentos
+
+        self.decay = tk.Toplevel(window.main)
+        self.decay.title(name)
+        self.decay.geometry('1000x600')
+
+        load = Image.open(picture)  
+        load_resize = load.resize((700,500))
+        img = ImageTk.PhotoImage(load_resize)
+        label = tk.Label(self.decay, image = img)
+        label.image = img
+        label.pack()
+        site_label = tk.Label(self.decay, text = 'From:  ' + site)
+        site_label.pack()
+
+    def Settings(self):
+
+        num = Current_Tab()
+
+        self.configuration = tk.Toplevel(window.main)
+        self.configuration.title('Settings')
+        self.configuration.geometry('700x400')
+        self.configuration.grab_set()
+        
+        self.parameter = ttk.Notebook(self.configuration)
+        self.parameter.pack(expand = True, fill = 'both')
+        self.parameter.enable_traversal()
+        self.general_tab = tk.Frame(self.parameter)
+        self.algorithm_tab = tk.Frame(self.parameter)
+        self.parameter.add(self.general_tab, text = 'General Settings')
+        self.parameter.add(self.algorithm_tab, text = 'Algorithm Settings')
+
+        self.general_tab.columnconfigure(0, weight = 1)
+        self.general_tab.columnconfigure(1, weight = 1)
+        self.general_tab.columnconfigure(2, weight = 1)
+
+        self.algorithm_tab.columnconfigure(0, weight = 1)
+        self.algorithm_tab.columnconfigure(1, weight = 1)
+        self.algorithm_tab.columnconfigure(2, weight = 1)
+        self.algorithm_tab.columnconfigure(3, weight = 1)        
+
+        self.energy_value = TabList[num][1].energy.get()
+        self.unit_value = TabList[num][1].units.get()
+        self.peak_interval = TabList[num][1].peaks_widths.get()
+        self.cut_low_energy = TabList[num][1].channels_cut.get()
+
+        self.buttons_frame = tk.Frame(self.configuration)
+        self.buttons_frame.pack()
+
+
+        def close(choice):
+
+            num = Current_Tab()
+
+            if choice == 0:
+
+                TabList[num][1].units.set(wng.unit_value)
+                TabList[num][1].energy.set(wng.energy_value)
+                TabList[num][1].peaks_widths.set(wng.peak_interval)
+                TabList[num][1].channels_cut.set(wng.cut_low_energy)
+                wng.configuration.destroy()
+
+            elif choice == 1:
+
+                try:
+
+                    TabList[num][1].peaks_widths.set(wng.entry2.get())
+                    TabList[num][1].channels_cut.set(wng.entry1.get())
+
+                except ValueError:
+                    TabList[num][1].peaks_widths.set(wng.peak_interval)
+                    TabList[num][1].channels_cut.set(wng.cut_low_energy)   
+
+                wng.configuration.destroy()
+
+            elif choice == 2:   
+
+                try:
+
+                    TabList[num][1].peaks_widths.set(wng.entry2.get())
+                    TabList[num][1].channels_cut.set(wng.entry1.get())
+
+                except ValueError:
+                    TabList[num][1].peaks_widths.set(wng.peak_interval)
+                    TabList[num][1].channels_cut.set(wng.cut_low_energy)    
+                    
+
+                Energy_settings.set(TabList[num][1].energy.get())
+                Unit_settings.set(TabList[num][1].units.get())
+
+                Channel_cut.set(TabList[num][1].channels_cut.get())
+                Peak_Width.set(TabList[num][1].peaks_widths.get())                
+
+                wng.configuration.destroy()
+
+        ################################################ 
+
+        tk.Label(self.general_tab, text = ' ').grid(row = 0, 
+                                                                       column = 0, pady = 10, padx = 10)
+        tk.Label(self.general_tab, text = 'Specify Energy Units').grid(row = 1, 
+                                                                       column = 0, pady = 10, padx = 10)
+        tk.Label(self.general_tab, 
+                 text = 'Specify Thickness Units').grid(row = 1, column = 2, pady = 10, padx = 10)
+
+        tk.Radiobutton(self.general_tab, text = 'kEv', 
+                       variable = TabList[num][1].energy, value = 1).grid(row = 2, column = 0)
+        tk.Radiobutton(self.general_tab, text = 'MEv', 
+                       variable = TabList[num][1].energy, value = 1000).grid(row = 3, column = 0)
+        
+
+        tk.Radiobutton(self.general_tab, text = 'nm', 
+                       variable= TabList[num][1].units, value = 10.0**9).grid(row = 2, column = 2)
+        tk.Radiobutton(self.general_tab, text = '\u03bcm', 
+                       variable= TabList[num][1].units, value = 10.0**6).grid(row = 3, column = 2)
+        tk.Radiobutton(self.general_tab, text = '\u03bcg' + ' cm' + '{}'.format('\u207B' + '\u00b2'), 
+                       variable= TabList[num][1].units, value = 0.0).grid(row = 4, column = 2)
+        tk.Radiobutton(self.general_tab, text = '10' + '{}'.format('\u00b9' + '\u2075') + ' Atoms' +
+                       ' cm' + '{}'.format('\u207B' + '\u00b2'), 
+                       variable= TabList[num][1].units, value = -1.0).grid(row = 5, column = 2)
+        
+        
+        ########################################################################################
+
+        tk.Label(self.algorithm_tab, text = 'Threshold Input Algorithm Settings').grid(
+            row = 0, columnspan = 3, pady = 10)
+        tk.Label(self.algorithm_tab, text = 'Low Energy Cut: ').grid(
+            row = 1, column = 1, pady = 10)
+        self.entry1 = tk.Entry(self.algorithm_tab)
+        self.entry1.grid(row = 1, column = 2, pady = 10)
+        self.entry1.insert(0, TabList[num][1].channels_cut.get())
+        tk.Label(self.algorithm_tab, text = 'Approximate width of peaks: ').grid(
+            row = 2, column = 1, pady = 10)
+        self.entry2 = tk.Entry(self.algorithm_tab)
+        self.entry2.grid(row = 2, column = 2, pady = 10)
+        self.entry2.insert(0, TabList[num][1].peaks_widths.get())
+
+        ########################################################################################
+
+        tk.Button(self.buttons_frame, text = 'Cancel and Return', command = lambda: 
+                  close(0)).grid(row = 1, column = 2, padx = 5, pady = 5)
+        tk.Button(self.buttons_frame, text = 'Apply to current Tab', command = lambda: 
+                  close(1)).grid(row = 1, column = 0, padx = 5, pady = 5)
+        tk.Button(self.buttons_frame, text = 'Apply to all Tabs', command = lambda: 
+                  close(2)).grid(row = 1, column = 1, padx = 5, pady = 5)
 
 ############################################################################
 # A class das Tabs. Inclui a estrutura propria do Notebook - widget de 
@@ -1138,13 +1583,11 @@ class Tabs:
         self.CRFrame.rowconfigure(0, weight = 3)
         self.CRFrame.rowconfigure(1, weight = 3)
 
-        
-        
         ############# Aqui adicionam-se as frames iniciadas acima
         self.notebook.add(self.CRFrame, text = 'Final Results')
         self.notebook.add(self.PlusFrame, text = '+')
         
-        ############# Frames onde irao ser inseridos os resultados finais
+        ############# Frames onde irao ser inseridos os resultados finais e scrollbars
 
         self.Calib_Result = tk.Frame(self.CRFrame, borderwidth = 5, relief = 'ridge')
         self.Calib_Result.grid(row = 0, column = 0, pady = 10, padx = 30, sticky = 'nw', rowspan = 2)
@@ -1195,8 +1638,6 @@ class Tabs:
                               lambda e: self.mat_canvas.configure(
                                   scrollregion = self.mat_canvas.bbox('all'), width = e.width)) 
         
-        
-
         ########### Variavel para contar o numero de separadores 
         self.value = 0
 
@@ -1207,9 +1648,9 @@ class Tabs:
 
         ### Configuracao de geometria e Frames comuns a Calib e Material Tabs  ####
         
-        TabList[Notebook.value][0].columnconfigure(0, weight= 4)
+        TabList[Notebook.value][0].columnconfigure(0, weight = 4)
         TabList[Notebook.value][0].columnconfigure(1, weight = 1)
-        TabList[Notebook.value][0].rowconfigure(0, weight = 4)
+        TabList[Notebook.value][0].rowconfigure(0, weight = 1)
         TabList[Notebook.value][0].rowconfigure(1, weight = 1)
 
         self.GraphicFrame = tk.Frame(TabList[Notebook.value][0], borderwidth = 5, relief = 'ridge')
@@ -1221,11 +1662,12 @@ class Tabs:
         self.SourceFrame = tk.Frame(TabList[Notebook.value][0], borderwidth = 5, relief = 'ridge')
         self.SourceFrame.grid(column = 1, row = 0, sticky = "ne", pady = 5)
 
+        self.Extra_Frame = tk.Frame(TabList[Notebook.value][0], borderwidth = 5, relief = 'ridge')
+
         self.AlgFrame = tk.Frame(self.DataFrame, borderwidth = 0)
         self.AlgFrame.grid(row = 2, columnspan = 2, pady = 5)
        
         self.ResultFrame = tk.Frame(self.DataFrame)
-        
         
         ##################################### Variaveis para cada instance ##########################
 
@@ -1235,6 +1677,24 @@ class Tabs:
         self.Algorithm = tk.IntVar()
         self.Algorithm.trace('w', on_entry_change)
         self.Algorithm.set(0)
+
+        self.units = tk.DoubleVar()
+        unit = Unit_settings.get()
+        self.units.set(unit)
+
+        self.energy = tk.IntVar()
+        energies = Energy_settings.get()
+        self.energy.set(energies)
+
+        self.channels_cut = tk.IntVar()
+        self.channels_cut.set(Channel_cut.get())
+
+        self.peaks_widths = tk.IntVar()
+        self.peaks_widths.set(Peak_Width.get())
+
+        self.Real_Time = tk.StringVar()
+        
+        self.Total_Counts = tk.StringVar()
 
         self.variable1 = tk.IntVar()
         self.variable1.set(0)
@@ -1313,7 +1773,8 @@ class Tabs:
             self.ThicknessFrame = tk.Frame(self.SourceFrame)
 
             tk.Label(self.SourceFrame, text = 'Material of Film Used: ').grid(row = 0, columnspan = 2)
-            tk.OptionMenu(self.SourceFrame, self.Mat, *materials_list).grid(row = 1, columnspan = 2)
+            self.Mat_Menu = tk.OptionMenu(self.SourceFrame, self.Mat, *materials_list)
+            self.Mat_Menu.grid(row = 1, columnspan = 2)
 
             
             tk.Label(self.SourceFrame, text = 'Choose the Calibration Regression \n'+ 
@@ -1349,8 +1810,9 @@ class Tabs:
 
             tk.Label(self.SourceFrame, 
                      text = 'Radiation Source Selected: ').grid(row = 0, columnspan = 2)
-            tk.OptionMenu(self.SourceFrame, self.Source, 
-                          *source_list, command = SourceReader).grid(row = 1, columnspan = 2)
+            self.Source_Menu = tk.OptionMenu(self.SourceFrame, self.Source, 
+                          *source_list, command = SourceReader)
+            self.Source_Menu.grid(row = 1, columnspan = 2)
             self.SourceOptionsFrame = tk.Frame(self.SourceFrame, borderwidth = 0)
             self.SourceOptionsFrame.grid(row = 2, columnspan = 2)
             self.LinearRegressionFrame = tk.Frame(self.SourceFrame, borderwidth = 1)
@@ -1430,6 +1892,8 @@ class Plot:
         self.line = []
 
         num = Current_Tab()
+        total_sum = 0
+        j = 0
 
         ClearWidget('Graphic', 0)
         TabList[num][1].GraphicFrame.grid(column = 0, row = 0, sticky = "nw", pady = 5, columnspan = 2)
@@ -1441,12 +1905,20 @@ class Plot:
                                         #ha-de-se incluir outro if.
             for i in range(12, len(File) - 1):  
                 self.Counts.append(int(File[i]))
+                total_sum = total_sum + self.Counts[j]
                 self.Channel.append(i-11)
                 Data.write(str(self.Counts[i-12])+"\n")
+                j += 1
 
             # Ciclo for para adquirir os valores dos dados
 
         Data.close()
+
+        TabList[num][1].Total_Counts.set(total_sum)
+        TabList[num][1].Extra_Frame.grid(column = 0, row = 1, sticky = "nw")
+        tk.Label(TabList[num][1].Extra_Frame, text = TabList[num][1].Real_Time.get()).grid(row = 0)
+        tk.Label(TabList[num][1].Extra_Frame, text = 'Total Sum of Counts is: ' + 
+                 str(TabList[num][1].Total_Counts.get())).grid(row = 1)
 
         if TabTracker[num] < 0:
             self.Title = 'Calibration Trial ' + str(-TabTracker[num])
@@ -1505,6 +1977,7 @@ for entry in Dir:
     if entry.is_file():
         temp = (os.path.splitext(entry.name))
         materials_list.append(temp[0])
+
 ############ Variaveis Estruturais #############################
 
 window = Skeleton()
@@ -1513,11 +1986,6 @@ Notebook.First_Tabs()
 wng = Warnings()
 
 ############## Tabs variaveis para serem criadas ###############
-
-""" "Beta Function"
-window.menu.add_command(label = 'Tab', command = lambda: print(Notebook.notebook.tabs()))
-# Hei de utilizar quando completar a remocao de tabs
-# Nao vai estar na versao final """
 
 tab1 = tk.Frame(Notebook.notebook, bg = 'dark grey')
 tab2 = tk.Frame(Notebook.notebook, bg = 'dark grey')
@@ -1561,7 +2029,6 @@ graph11 = Plot()
 graph12 = Plot()
 graph13 = Plot()
 
-
 TabList = [
     [tab1, tabtype1, "Temp\Data1.txt", "Temp\Analysis1.txt", "Temp\Result1.txt", graph1], 
     [tab2, tabtype2, "Temp\Data2.txt", "Temp\Analysis2.txt", "Temp\Result2.txt", graph2], 
@@ -1579,6 +2046,17 @@ TabList = [
 ]
 
 TabTracker = []
+
+Energy_settings = tk.IntVar()
+Energy_settings.set(1000)
+Unit_settings = tk.DoubleVar()
+Unit_settings.set((10**9))
+
+Channel_cut = tk.IntVar()
+Channel_cut.set(100)
+
+Peak_Width = tk.IntVar()
+Peak_Width.set(35)
 
 #############################################################################################
 Tabs.tab_change(1)
