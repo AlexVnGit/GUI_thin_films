@@ -113,6 +113,13 @@ def ClearWidget(Frame, parameter):
             TabList[num][1].Mat.set('Select Material')
             os.remove(TabList[num][4])
 
+    elif Frame == 'Final': # Para o caso de se apagarem tabs, o final results e atualizado
+        for widget in Notebook.Mat_Result2.winfo_children():
+            widget.destroy()
+        widget = 0
+        for widget in Notebook.Calib_Result2.winfo_children():
+            widget.destroy()
+
     elif Frame == 'Everything': # Esta e a opcao que da reset a tudo numa tab
         for widget in TabList[num][1].GraphicFrame.winfo_children():
             widget.destroy()        
@@ -250,19 +257,21 @@ def Precision(value):
 ############################################################################################
 # Le os resultados finais e exibe os na primeira tab
 ############################################################################################
-def Final_Results():
+def Final_Results(tracker):
 
     num = Current_Tab()
-    tracker = TabTracker[num]
 
     if tracker < 0:
         Linearize()
 
-    else:
+    elif tracker > 0:
         Final_Calculation()
 
+    elif tracker == 0:
+        pass        
+        
     for i in range(0, len(TabTracker)):
-        if tracker < 0 and TabTracker[i] < 0:
+        if (tracker < 0 or tracker == 0) and TabTracker[i] < 0:
             if os.path.isfile(TabList[i][4]) == True:
 
                 if TabList[i][1].energy.get() == 1000:
@@ -307,7 +316,7 @@ def Final_Results():
                               lambda e: Notebook.calib_canvas.configure(
                                   scrollregion = Notebook.calib_canvas.bbox('all'), width = e.width)) 
 
-        if tracker > 0 and TabTracker[i] > 0:
+        if (tracker > 0 or tracker == 0) and TabTracker[i] > 0:
             if os.path.isfile(TabList[i][4]) == True and os.path.isfile(TabList[i][3]) == True:
 
                 Results = File_Reader(TabList[i][4], '0', 'Yes', 'No')
@@ -1002,6 +1011,7 @@ def handleTabChange(event):
 def SourceReader(*args):
 
     num = Current_Tab()
+    value = TabTracker[num]
     
     ClearWidget('Source', 0) # Reset dos widgets e da geometria
     TabList[num][1].SourceOptionsFrame.grid(row = 2, columnspan = 2)
@@ -1030,7 +1040,7 @@ def SourceReader(*args):
               text = 'Show Decay Chain', command = showimage).grid(row = i + 1, column = 0)
     tk.Button(TabList[num][1].SourceOptionsFrame, text = 'Linear Regression',  # Efetua a regressao
                                                     # linear e poe os resultados na primeira tab
-              command = Final_Results).grid(row = i + 1, column = 1)
+              command = lambda: Final_Results(value)).grid(row = i + 1, column = 1)
     
 ##############################################################################
 # Esta funcao altera a interface dos dados inputs para cada algoritmo
@@ -1253,7 +1263,7 @@ def File_Manager(Choice, Nature, Action):
 def Save_Results():
     
     domain = (('Text Files', '*.txt'), ('All Files', '*.*'))
-    file = fd.asksaveasfile(title = 'Save Results', initialdir = ",", filetypes = domain)
+    file = fd.asksaveasfile(title = 'Save Results', initialdir = ",", filetypes = domain, defaultextension = ".txt")
 
     if file:
 
@@ -1309,8 +1319,8 @@ def Save_Results():
 
                 file.write('\nThe average thickness, of material ' + 
                            TabList[i][1].Mat.get() + ' was calculated to be: ' + '('
-                           '%.*f' % (int(thickness[-1]), float(thickness[j + 1])) + ' ' + 
-                           ' ' + u" \u00B1 " + 
+                           '%.*f' % (int(thickness[-1]), float(thickness[j + 1])) + 
+                           ' ' + u"\u00B1 " + 
                            '%.*f' % (int(thickness[-1]), float(thickness[j + 2])) + ') ' + 
                            units_list[index] + '\n\n')
                 
@@ -1354,7 +1364,6 @@ class Skeleton:
         __file_menu.add_command(label = 'Exit', command = self.main.quit)
 
             # O bloco de definicoes do programa
-        
         self.menu.add_command(label = 'Settings', command = lambda: wng.Settings())
 
             # Gere as tabs do programa
@@ -1362,10 +1371,10 @@ class Skeleton:
         self.menu.add_cascade(label = 'Manage Tabs', menu = __tabs_menu)
         __tabs_menu.add_command(label = 'Add Calibration Tab', command = lambda: Tabs.tab_change(1))
         __tabs_menu.add_command(label = 'Add Material Tab', command = lambda: Tabs.tab_change(2))
-        #__tabs_menu.add_separator()
-        #__tabs_menu.add_command(label = 'Remove Current Tab', command = Tab_Remover)
-        # Nao consigo arranjar maneira de implementar esta funcionalidade
+        __tabs_menu.add_separator()
+        __tabs_menu.add_command(label = 'Remove Current Tab', command = lambda: Tabs.tab_change(4))
         
+            # Gere os documentos da base de dados do programa
         __files_data = tk.Menu(self.menu, tearoff = False)
         self.menu.add_cascade(label = 'Manage Data Files', menu = __files_data)
         __files_data.add_command(label = 'Add Alpha Source File', 
@@ -1391,9 +1400,7 @@ class Skeleton:
         self.menu.add_command(label = "About", command = lambda: webbrowser.open(
             'https://github.com/AlexVnGit/GUI_thin_films/blob/master/README.md', new = 1))
         
-        
-
-        
+                
     def run(self):
         #### O metodo que permite o programa manter-se aberto
         self.main.mainloop()
@@ -1776,6 +1783,8 @@ class Tabs:
             self.Mat_Menu = tk.OptionMenu(self.SourceFrame, self.Mat, *materials_list)
             self.Mat_Menu.grid(row = 1, columnspan = 2)
 
+            num = Current_Tab()
+            value = TabTracker[num]
             
             tk.Label(self.SourceFrame, text = 'Choose the Calibration Regression \n'+ 
                      'Make sure the Peaks in the Calibration ' + 
@@ -1783,7 +1792,7 @@ class Tabs:
             tk.Button(self.SourceFrame, text = 'Calibration Trial', 
                       command = Calib_Choice).grid(row = 3, column = 0)
             tk.Button(self.SourceFrame, text = 'Calculate Thickness', 
-                      command = Final_Results).grid(row = 3, column = 1)
+                      command = lambda: Final_Results(value)).grid(row = 3, column = 1)
 
         def CalibTab(self):
 
@@ -1827,17 +1836,24 @@ class Tabs:
     @staticmethod
     def tab_change(num):
 
-        index = len(Notebook.notebook.tabs()) - 1            
+        value = Current_Tab()
+        index = len(Notebook.notebook.tabs()) - 1             
 
         if num == 1:
 
             Tabs.Counter_Calib -= 1
+            Data = "Temp\Data" + str(Tabs.Counter_Calib) + ".txt"
+            Analysis = "Temp\Analysis" + str(Tabs.Counter_Calib) + ".txt"
+            Result =  "Temp\Result" + str(Tabs.Counter_Calib) + ".txt"
+            TabList.append([tk.Frame(Notebook.notebook, bg = 'dark grey'), Tabs(),  Data,
+                        Analysis,  Result, Plot()]) 
+
             TabTracker.append(Tabs.Counter_Calib)
             TabList[Notebook.value][1].AnalysisTab(1)
             Notebook.notebook.insert(index, TabList[Notebook.value][0], 
                                      text = "Calibration Trial " + str(-Tabs.Counter_Calib))
             Notebook.notebook.select(index)
-            Notebook.value = Notebook.value + 1
+            Notebook.value += 1
             try:
                 wng.warning.destroy()
             except:
@@ -1847,12 +1863,18 @@ class Tabs:
         elif num == 2:
 
             Tabs.Counter_Mat += 1
+            Data = "Temp\Data" + str(Tabs.Counter_Mat) + ".txt"
+            Analysis = "Temp\Analysis" + str(Tabs.Counter_Mat) + ".txt"
+            Result =  "Temp\Result" + str(Tabs.Counter_Mat) + ".txt"
+            TabList.append([tk.Frame(Notebook.notebook, bg = 'dark grey'), Tabs(),  Data,
+                        Analysis,  Result, Plot()]) 
+
             TabTracker.append(Tabs.Counter_Mat)
             TabList[Notebook.value][1].AnalysisTab(2)
             Notebook.notebook.insert(index, TabList[Notebook.value][0], 
                                      text = "Material Trial " + str(Tabs.Counter_Mat))
             Notebook.notebook.select(index)
-            Notebook.value = Notebook.value + 1
+            Notebook.value += 1
             try:
                 wng.warning.destroy()
             except:
@@ -1864,18 +1886,32 @@ class Tabs:
             wng.warning.destroy()
 
         elif num == 4:
-            value = Current_Tab()
-            Notebook.notebook.select(index - 1)
 
-            if TabTracker[value] < 0:
-                Tabs.Counter_Calib += 1
+            if Notebook.notebook.select() == '.!notebook.!frame' or Notebook.notebook.select() == '.!notebook.!frame2':
+                wng.popup('Bad Tab Deletion')
+                tk.Label(wng.warning, text = '\n This Tab cannot be deleted.\nPlease delete Analysis Tabs').pack()
+                tk.Label(wng.warning, text = '\n\n').pack()
+                tk.Button(wng.warning, text = 'Return', command = lambda: wng.warning.destroy()).pack()
 
             else:
-                Tabs.Counter_Mat -= 1
 
+                Notebook.notebook.forget("current")
+                Notebook.notebook.select(index - 2)
 
-            TabTracker.pop(value)
-                
+                if os.path.isfile(TabList[value][2]) == True:
+                    os.remove(TabList[value][2])
+                if os.path.isfile(TabList[value][3]) == True:
+                    os.remove(TabList[value][3])
+                if os.path.isfile(TabList[value][4]) == True:
+                    os.remove(TabList[value][4])
+
+                TabList.pop(value)
+
+                Notebook.value -= 1
+                TabTracker.pop(value)
+                ClearWidget('Final', 0)
+                Final_Results(0)
+       
 ###########################################################################
 # Esta classe recebe os dados dos ficheiros externos
 # e insere os graficos na frame grande do GUI.
@@ -1987,64 +2023,7 @@ wng = Warnings()
 
 ############## Tabs variaveis para serem criadas ###############
 
-tab1 = tk.Frame(Notebook.notebook, bg = 'dark grey')
-tab2 = tk.Frame(Notebook.notebook, bg = 'dark grey')
-tab3 = tk.Frame(Notebook.notebook, bg = 'dark grey')
-tab4 = tk.Frame(Notebook.notebook, bg = 'dark grey')
-tab5 = tk.Frame(Notebook.notebook, bg = 'dark grey')
-tab6 = tk.Frame(Notebook.notebook, bg = 'dark grey')
-tab7 = tk.Frame(Notebook.notebook, bg = 'dark grey')
-tab8 = tk.Frame(Notebook.notebook, bg = 'dark grey')
-tab9 = tk.Frame(Notebook.notebook, bg = 'dark grey')
-tab10 = tk.Frame(Notebook.notebook, bg = 'dark grey')
-tab11 = tk.Frame(Notebook.notebook, bg = 'dark grey')
-tab12 = tk.Frame(Notebook.notebook, bg = 'dark grey')
-tab13 = tk.Frame(Notebook.notebook, bg = 'dark grey')
-
-tabtype1 = Tabs()
-tabtype2 = Tabs()
-tabtype3 = Tabs()
-tabtype4 = Tabs()
-tabtype5 = Tabs()
-tabtype6 = Tabs()
-tabtype7 = Tabs()
-tabtype8 = Tabs()
-tabtype9 = Tabs()
-tabtype10 = Tabs()
-tabtype11 = Tabs()
-tabtype12 = Tabs()
-tabtype13 = Tabs()
-
-graph1 = Plot()
-graph2 = Plot()
-graph3 = Plot()
-graph4 = Plot()
-graph5 = Plot()
-graph6 = Plot()
-graph7 = Plot()
-graph8 = Plot()
-graph9 = Plot()
-graph10 = Plot()
-graph11 = Plot()
-graph12 = Plot()
-graph13 = Plot()
-
-TabList = [
-    [tab1, tabtype1, "Temp\Data1.txt", "Temp\Analysis1.txt", "Temp\Result1.txt", graph1], 
-    [tab2, tabtype2, "Temp\Data2.txt", "Temp\Analysis2.txt", "Temp\Result2.txt", graph2], 
-    [tab3, tabtype3, "Temp\Data3.txt", "Temp\Analysis3.txt", "Temp\Result3.txt", graph3], 
-    [tab4, tabtype4, "Temp\Data4.txt", "Temp\Analysis4.txt", "Temp\Result4.txt", graph4], 
-    [tab5, tabtype5, "Temp\Data5.txt", "Temp\Analysis5.txt", "Temp\Result5.txt", graph5], 
-    [tab6, tabtype6, "Temp\Data6.txt", "Temp\Analysis6.txt", "Temp\Result6.txt", graph6],
-    [tab7, tabtype7, "Temp\Data7.txt", "Temp\Analysis7.txt", "Temp\Result7.txt", graph7], 
-    [tab8, tabtype8, "Temp\Data8.txt", "Temp\Analysis8.txt", "Temp\Result8.txt", graph8], 
-    [tab9, tabtype9, "Temp\Data9.txt", "Temp\Analysis9.txt", "Temp\Result9.txt", graph9], 
-    [tab10, tabtype10, "Temp\Data10.txt", "Temp\Analysis10.txt", "Temp\Result10.txt", graph10], 
-    [tab11, tabtype11, "Temp\Data11.txt", "Temp\Analysis11.txt", "Temp\Result11.txt", graph11], 
-    [tab12, tabtype12, "Temp\Data12.txt", "Temp\Analysis12.txt", "Temp\Result12.txt", graph12], 
-    [tab13, tabtype13, "Temp\Data13.txt", "Temp\Analysis13.txt", "Temp\Result13.txt", graph13]
-]
-
+TabList = []
 TabTracker = []
 
 Energy_settings = tk.IntVar()
