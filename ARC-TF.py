@@ -1,8 +1,3 @@
-####################################################################
-# Por enquanto não se utilizam todas estas bibliotecas
-#Mas irão ser necessárias (provavelmente)
-####################################################################
-
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog as fd
@@ -17,7 +12,7 @@ import os
 import math
 from shutil import copy2
 
-########## Ajusta-se ao ecra e foca os widgets ######
+########## Ajusta-se ao ecra e foca os widgets - Windows ######
 import ctypes
 ctypes.windll.shcore.SetProcessDpiAwareness(1)
 ###########################################################
@@ -1327,7 +1322,7 @@ def Save_Results():
                 '%.*f' % (int(Regression[6]), float(Regression[4]))
                 
                 file.write('_______________________________________________________________\n\n')
-      
+        
 #############################################################################
 # A classe do esqueleto, onde esta a barra de ferramentas e a janela principal
 # do programa
@@ -1394,7 +1389,7 @@ class Skeleton:
         
 
             # Abre o html de Help
-        self.menu.add_command(label = 'Help')
+        self.menu.add_command(label = 'Help', command = lambda: wng.Help())
 
             # Abre o link para o Readme
         self.menu.add_command(label = "About", command = lambda: webbrowser.open(
@@ -1564,6 +1559,37 @@ class Warnings:
         tk.Button(self.buttons_frame, text = 'Apply to all Tabs', command = lambda: 
                   close(2)).grid(row = 1, column = 1, padx = 5, pady = 5)
 
+    def Help(self):
+
+        try:
+            wng.helping.destroy()
+
+        except:
+            pass
+
+        with open('Files\Help.txt', 'r') as OpenFile: # Abre (e fecha) o documento
+            lines = OpenFile.read() # Le os dados como string
+
+        self.helping = tk.Toplevel(window.main)
+        self.helping.title('Help')
+        self.helping.resizable(0,0)
+        self.frame = tk.Frame(self.helping)
+        self.frame.pack(expand= True, fill= 'both')
+        self.canvas = tk.Canvas(self.frame)
+        self.frame2 = tk.Frame(self.canvas)
+        self.scrollbar = tk.Scrollbar(self.frame)
+        self.canvas.config(yscrollcommand = self.scrollbar.set, highlightthickness = 0 )
+        self.scrollbar.config(orient = tk.VERTICAL, command = self.canvas.yview)
+        self.canvas.grid(row = 1, column = 0)
+        self.scrollbar.grid(row = 1, column = 2, sticky = 'ns')
+        self.scrollbar.place
+        self.canvas.create_window(0, 0, window = self.frame2, anchor = tk.NW)
+        self.frame2.bind('<Configure>', 
+                              lambda e: self.canvas.configure(
+                                  scrollregion = self.canvas.bbox('all'), width = e.width))
+        
+        menu = tk.Label(self.frame2, text = lines).grid()
+        
 ############################################################################
 # A class das Tabs. Inclui a estrutura propria do Notebook - widget de 
 # separadores; as tabs dos resultados e de adicionar tabs; e a estrutura que
@@ -2016,10 +2042,10 @@ for entry in Dir:
 
 ############ Variaveis Estruturais #############################
 
+wng = Warnings()
 window = Skeleton()
 Notebook = Tabs()
 Notebook.First_Tabs()
-wng = Warnings()
 
 ############## Tabs variaveis para serem criadas ###############
 

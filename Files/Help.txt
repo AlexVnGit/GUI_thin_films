@@ -1,0 +1,135 @@
+ARC-TF Help Menu
+___________________________________________________________________________________________________________
+
+Welcome to ARC-TF!
+
+Workflow
+
+The program has 3 types of tabs. The first one, the Final Results Tab is a special tab, and exhibits all 
+the results calculated by the remainder two types of tabs. These are the Calibration Analysis Tabs, and the 
+Material Analysis Tabs. The user can create and delete these last two types of tabs freely. The options 
+available are different depending on which type of Tab the user opens.
+
+Calibration Tab:
+
+The program automatically starts with one calibration tab open. However, the user has the option to open 
+more calibration tabs. Here, the user can click the File button on the menu bar, and click the first option 
+to upload the experimental data that is saved in the computer. ARC-TF will automatically plot this data and 
+show it embedded in the GUI. From here, the user can detect the peaks, selecting the analysis algorithm 
+first, up to a maximum of 15 values. The corresponding channels and counts will appear on screen at the top 
+right corner. The user can reset all these values, or uncheck a selection of them. If unchecked, the user 
+needs to clear these values. Following this analysis, the user can select the radiation source. Once again, 
+the user has the possibility to check/uncheck the energy values that the interface will use for the both the 
+linear regression.
+
+Material Tab:
+
+The user can open a material tab at any step of the analysis process. The first few steps, are equal to the 
+calibration tab. The user uploads the data, detects the peaks using the analysis algorithms. Here, the user 
+also needs to make an appropriate selection of the channels intended for use. It is important that the user 
+selects the peaks such that they match the ones selected in the calibration trial. Following this step, the 
+user can then select the material of the thin film. Afterwards, all that is left is to choose one, or more, 
+calibration trials. The program will only use the energy from the radiation sources of the first calibration 
+trial. This is why the the choice of peaks is of great importance. Finally, the user can calculate the 
+thickness by clicking the button. The results will appear below the button, and in the final results tab.
+
+Other Features:
+
+Besides the various analysis tools, ARC-TF also has a few other features that facilitate the process. 
+The program has the option to delete the various instances of data, so the user can restart the analysis 
+from a specific point. Likewise, the user can clear the entire data from a tab. The GUI has a settings menu, 
+where the user can select the units to use. These vary for the units of the linear regression, which can be 
+in keV or MeV, and for the units of thickness. These options can be applied to the entire program, or to a 
+specific tab. This makes analysis for various thin films of different orders of magnitude possible. 
+Furthermore, the user can create and delete tabs, add and remove material or radiation source files from 
+the database. For the calibration trial, there is also the option for viewing an image detailing the the 
+decay reaction of the selected radiation source. More images can be added or removed by the user. Besides 
+these feature, there is also an About button, which will direct the user to the GitHub repository of the 
+GUI.
+
+Limitations:
+
+ARC-TF is intended to be a simple and effective analysis tool, but naturally, a few limitations were considered. 
+As of the publication of this article ARC-TF works only for Windows. The program only reads MCA domain files 
+when the user uploads the file that has the experimental data. Furthermore, the program expects that the 
+experimental values start only at line 13. In case of the files of the database, it will only read TXT domain 
+files. In case of the materials database, the file must have the relative atomic mass in the first line, 
+followed by "|" and then, the density plus another "|". For the remaining lines, the TXT file must be organized 
+with the energy value followed by "|", the corresponding stopping power, and another "|".
+In case of the radiation sources, the values need to be written in descending order of the values in MeV. The 
+Graphic User Interface was designed to work for any given range of energies. However, the built-in database 
+has the stopping powers corresponding to the energy range of 4 MeV to 8 MeV. This interval was chosen due 
+to the energy of the radiation sources the NUC-RIA utilizes for their experiments. The incrementation of the 
+range corresponds to 1 keV, as this is the lowest incrementation available in the ASTAR database from NIST. 
+The program includes the stopping powers for the materials of Aluminium, Gold, Lead, PMMA and Tin. 
+For the radiation sources of alpha particles, ARC-TF has the the values of Radium-226 and Uranium-232 in MeV.
+In both the material and radiation sources, it is possible to add new files externally to ARC-TF's file folder, 
+or internally.
+________________________________________________________________________________________________________________
+
+The Algorithms
+
+Threshold Input Algorithm:
+
+This algorithm detects the various local channels with the highest counts. After uploading the experimental 
+results from the detector, the user can input a threshold value. With this value, the program will only read 
+the experimental results above this value, and ignore all the remainder. After the separation of the counts, 
+the program will then detect the maximum of each curve. However this brings two problems: First, the algorithm 
+will treat the low energy noise as a peak and consider certain channels as values of interest. Second, some 
+of these curves will contain a few points that might fall below the threshold, probably due to systematic 
+errors. For these problems the solution implemented was the same: Two variables that mitigate the effects. 
+The first will make the algorithm only take into account values beyond a certain channel. This will solve 
+the low energy noise points that would be detected. The variable is configured within the code with the 
+value of Channel = 100. As for the other variable, if the algorithm registers two points whose channels 
+differ only by a value of a certain amount, Channel(k+1) - Channel(k) < 35, it will only keep the one 
+with most counts. Both of these values can be altered in the Settings Menu of the program, and their 
+function is to keep the algorithm more exact, in order to minimize the intervention of the user.
+After the peaks are detected, the program stores the Counts and the Channels of the points in a temporary 
+file.
+
+Manual Selection Algorithm:
+
+This algorithm, like the one before it, detects the various points. However, unlike the Threshold Input, 
+there is no input value from the user and it does not necessarily detect local maximums. Instead, the user 
+can simply right click with his mouse on the graphic, to detect the nearest points. This means that the user 
+has freedom to select the maximum values, but also other points. The algorithm is simple, only using a least 
+square difference to check which points to save in a temporary file. The algorithm then configures any point 
+to a temporary file, treating it as a local maximum. It is a semi-automatic algorithm that can be used in 
+junction with the Threshold Input Algorithm interchangeably. The exactness of the values depends only on 
+where the user clicks.
+
+The Linear Regression Algorithm:
+
+This algorithm performs a simple linear regression. It is included in the article simply to showcase the 
+nature of the linear regression method, and how the uncertainty of the parameters are calculated. It starts 
+by sorting the results of the channels detected by the previous two algorithms and the values of decay energy 
+of the radiation source. This does not create any error for the linear regression since the values have an 
+ascending order. In fact, since the user can acquire the channels of the spectrum in any order, it is an 
+imperative step to perform. Here the y values are the decay energies of the alpha particles and the x values 
+are the channels detected. Because there is no method in the program that calculates the uncertainty of the 
+channels from the experimental results, the uncertainty of the slope and intersect are acquired by the
+traditional error formulas with no propagation of uncertainty. The procedure for calculating the uncertainty, 
+until a method to obtain the uncertainty of the experimental data itself is implemented, remains in a 
+generalized form. This has the consequence of a larger uncertainty, but suffices for preliminary results, 
+and an initial version of ARC-TF.
+
+The Thickness Approximation Algorithm:
+
+The final calculation receives data from the previous algorithms and condenses it for the sum of inverse 
+stopping powers. The algorithm needs to apply the calibration, using the linear regression results, to 
+the channels of the spectrum with a thin film. Due to the nature of the experimental setup of the Alpha 
+Energy Loss, it is necessary to change the vacuum chamber. This might uncalibrate the setup. For precaution, 
+new calibration runs are performed. Should the linear regression deviate significantly from the original 
+calibration, it indicates that the experimental data might not be exact. However, if the deviation is
+neglectable, the user has the option to select both linear regressions from the different trials. For the 
+algorithm, this is possible for any number of calibration trials the user wishes to select. The algorithm 
+averages all the linear regression values, and applies the final results to the channels detected by the 
+first two algorithms on the spectrum of the thin film. The next step consists on finding the stopping power 
+range, that will be used in the aforementioned equation. For this, the program checks the decay energies 
+used of the first calibration trial the user has selected for the linear regressions. It will only consider 
+the energy values of this calibration trial. These values become the final energy, while the channels, 
+after the linear regression is applied to them, become the initial energy. With this range, the equation 
+is computed, and with the internal database of a few materials, an approximate thickness is calculated. 
+This is done for every channel corresponding to a peak. After this step, an average of the thickness is 
+obtained, while its uncertainty is computed using standard deviation over the square root of the number 
+of peaks minus one. The results are then presented in the selected units.

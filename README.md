@@ -1,15 +1,10 @@
 # GUI_thin_films
-This project is intended to help the characterization of thin films, via an interface with ease of use, and background algorithms to accelerate data analysis.
-It has three main milestones, that could/should be achievable with enough time:
-1) Configuration of AEL characterization
-   a) Write a Help me File/Manual
-3) Configuration of RBS characterization
-4) Configuration of AlfaMC simulator on par with the results of the interface, for AEL characterization
+This project is intended to help the characterization of thin films, via an interface with ease of use, and background algorithms to accelerate data analysis. It is the result of a summer internship at LIP, and is intended
+for use of the NUC-RIA group. ARC-TF stands for Alpha energy loss and Rutherford back-scattering methods for 
+Characterization of Thin Films.
 
-For the interface to run, it is required to install the Python Tkinter and Matplotlib Libraries.
+As of now, the GUI can characterize the thickness of thin films using the Alpha Energy Loss. There is no version
+that can calculate the thickness by the Rutherford back-scattering method. As of now, ARC-TF only works for 
+Windows.
 
-Main issues:
-  Making the Plots that show up interactive. (Fixed)
-  Making sure the Tabs open up new menus (Fixed)
-  Making sure the Frames are stationary (Fixed)
-  Making sure the Interface opens up to the user's computer (Fixed)
+This GUI was created by Alexandre Gusmão.
