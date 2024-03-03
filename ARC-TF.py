@@ -321,7 +321,7 @@ def Final_Results(tracker):
                 units_list = ['nm', '\u03bcm',
                   '\u03bcg' + ' cm' + '{}'.format('\u207B' + '\u00b2'),
                   '10' + '{}'.format('\u00b9' + '\u2075') + ' Atoms' 
-                   + ' cm' + '{}'.format('\u207B' + '\u00b2')]
+                   + ' cm' + '{}'.format('\u207B' + '\u00b3')]
 
                 units_values = [10.0**9, 10.0**6, 0.0, -1.0]
                 index = units_values.index(TabList[i][1].units.get())
@@ -433,7 +433,7 @@ def Final_Calculation():
     units_list = ['nm', '\u03bcm',
                   '\u03bcg' + ' cm' + '{}'.format('\u207B' + '\u00b2'),
                   '10' + '{}'.format('\u00b9' + '\u2075') + ' Atoms' 
-                   + ' cm' + '{}'.format('\u207B' + '\u00b2')]
+                   + ' cm' + '{}'.format('\u207B' + '\u00b3')]
 
     units_values = [10.0**9, 10.0**6, 0.0, -1.0]
     index = units_values.index(TabList[num][1].units.get())
@@ -1302,7 +1302,7 @@ def Save_Results():
                 units_list = ['nm', '\u03bcm',
                   '\u03bcg' + ' cm' + '{}'.format('\u207B' + '\u00b2'),
                   '10' + '{}'.format('\u00b9' + '\u2075') + ' Atoms' 
-                   + ' cm' + '{}'.format('\u207B' + '\u00b2')]
+                   + ' cm' + '{}'.format('\u207B' + '\u00b3')]
 
                 units_values = [10.0**9, 10.0**6, 0.0, -1.0]
                 index = units_values.index(TabList[i][1].units.get())
@@ -1531,7 +1531,7 @@ class Warnings:
         tk.Radiobutton(self.general_tab, text = '\u03bcg' + ' cm' + '{}'.format('\u207B' + '\u00b2'), 
                        variable= TabList[num][1].units, value = 0.0).grid(row = 4, column = 2)
         tk.Radiobutton(self.general_tab, text = '10' + '{}'.format('\u00b9' + '\u2075') + ' Atoms' +
-                       ' cm' + '{}'.format('\u207B' + '\u00b2'), 
+                       ' cm' + '{}'.format('\u207B' + '\u00b3'), 
                        variable= TabList[num][1].units, value = -1.0).grid(row = 5, column = 2)
         
         
