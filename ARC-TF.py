@@ -905,6 +905,19 @@ def Threshold_Alg():
     ResultManager()
 
 ###############################################################################
+# Funcao para o algoritmo ROI Select
+################################################################################
+    
+def ROI_Select_Alg():
+    
+    num = Current_Tab()
+
+
+
+
+    return
+
+###############################################################################
 # Esta e a funcao que abre as imagens da cadeia de decaimento
 ################################################################################
 def showimage():
@@ -944,7 +957,7 @@ def onclick(event):
     decider = TabList[num][1].Algorithm_Method.get()
 
     if decider == 'Manual Selection' and event.button == 3:
-    # Estas duas opcoes verificam que so no modo Manual selection e so com o botado direito do rato
+    # Estas duas opcoes verificam que so no modo Manual selection e so com o botao direito do rato
     # e que aparecem os dados
         xpoint = event.xdata
         ypoint = event.ydata
@@ -1068,6 +1081,24 @@ def Method(*args):
                  text = 'Please input Threshold: ').grid(row = 2, columnspan = 3)
         tk.Entry(TabList[num][1].AlgFrame, textvariable = TabList[num][1].Algorithm, relief = 'sunken',
                   borderwidth = 2).grid(row = 3, columnspan= 3)
+        tk.Button(TabList[num][1].AlgFrame,text = 'Search', 
+                  command =  Threshold_Alg).grid(row = 4, column = 0)
+        tk.Button(TabList[num][1].AlgFrame,text = 'Remove Unchecked',
+                  command = Unchecked_Results).grid(row = 4, column = 1)
+        tk.Button(TabList[num][1].AlgFrame,text = 'Remove All',
+                  command = lambda: ClearWidget('Results', 1)).grid(row = 4, column = 2)
+    
+    elif decider == 'ROI Select':  #Definicao dos controlos para o algoritmo ROI Select
+        tk.Label(TabList[num][1].AlgFrame, 
+                 text = 'ROI Down: ').grid(row = 2, column = 0)
+        tk.Label(TabList[num][1].AlgFrame, 
+                 text = 'ROI Up: ').grid(row = 2, column = 1)
+        
+        tk.Entry(TabList[num][1].AlgFrame, textvariable = TabList[num][1].Algorithm, relief = 'sunken',
+                  borderwidth = 2).grid(row = 3, column = 0)
+        tk.Entry(TabList[num][1].AlgFrame, textvariable = TabList[num][1].Algorithm, relief = 'sunken',
+                  borderwidth = 2).grid(row = 3, column = 1)
+        
         tk.Button(TabList[num][1].AlgFrame,text = 'Search', 
                   command =  Threshold_Alg).grid(row = 4, column = 0)
         tk.Button(TabList[num][1].AlgFrame,text = 'Remove Unchecked',
@@ -1767,7 +1798,7 @@ class Tabs:
         ]
     
         tk.Label(self.DataFrame, text = 'Analysis Method Selected: ').grid(row = 0, columnspan = 2)
-        Algs = ["Manual Selection", "Threshold Input"]
+        Algs = ["Manual Selection", "Threshold Input", "ROI Select"]
         tk.OptionMenu(self.DataFrame, self.Algorithm_Method, *Algs, command = Method).grid(row = 1, columnspan = 2)
 
         def MatTab(self):
@@ -1871,8 +1902,9 @@ class Tabs:
             Data = "Temp\Data" + str(Tabs.Counter_Calib) + ".txt"
             Analysis = "Temp\Analysis" + str(Tabs.Counter_Calib) + ".txt"
             Result =  "Temp\Result" + str(Tabs.Counter_Calib) + ".txt"
+            ROIs = "Temp\ROIs" + str(Tabs.Counter_Calib) + ".txt"
             TabList.append([tk.Frame(Notebook.notebook, bg = 'dark grey'), Tabs(),  Data,
-                        Analysis,  Result, Plot()]) 
+                        Analysis,  Result, Plot(), ROIs]) 
 
             TabTracker.append(Tabs.Counter_Calib)
             TabList[Notebook.value][1].AnalysisTab(1)
@@ -1892,8 +1924,9 @@ class Tabs:
             Data = "Temp\Data" + str(Tabs.Counter_Mat) + ".txt"
             Analysis = "Temp\Analysis" + str(Tabs.Counter_Mat) + ".txt"
             Result =  "Temp\Result" + str(Tabs.Counter_Mat) + ".txt"
+            ROIs = "Temp\ROIs" + str(Tabs.Counter_Mat) + ".txt"
             TabList.append([tk.Frame(Notebook.notebook, bg = 'dark grey'), Tabs(),  Data,
-                        Analysis,  Result, Plot()]) 
+                        Analysis,  Result, Plot(), ROIs]) 
 
             TabTracker.append(Tabs.Counter_Mat)
             TabList[Notebook.value][1].AnalysisTab(2)
