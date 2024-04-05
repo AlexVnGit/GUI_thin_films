@@ -912,9 +912,7 @@ def ROI_Select_Alg():
     
     num = Current_Tab()
 
-
-
-
+    print('Muito Bom!')
     return
 
 ###############################################################################
@@ -1093,18 +1091,51 @@ def Method(*args):
                  text = 'ROI Down: ').grid(row = 2, column = 0)
         tk.Label(TabList[num][1].AlgFrame, 
                  text = 'ROI Up: ').grid(row = 2, column = 1)
-        
-        tk.Entry(TabList[num][1].AlgFrame, textvariable = TabList[num][1].Algorithm, relief = 'sunken',
+
+        tk.Label(TabList[num][1].AlgFrame, 
+            text = 'Peak 1').grid(row = 3, column = 2)
+        tk.Label(TabList[num][1].AlgFrame, 
+            text = 'Peak 2').grid(row = 4, column = 2) 
+        tk.Label(TabList[num][1].AlgFrame, 
+            text = 'Peak 3').grid(row = 5, column = 2) 
+        tk.Label(TabList[num][1].AlgFrame, 
+            text = 'Peak 4').grid(row = 6, column = 2) 
+        tk.Label(TabList[num][1].AlgFrame, 
+            text = 'Peak 5').grid(row = 7, column = 2) 
+        tk.Label(TabList[num][1].AlgFrame, 
+            text = 'Peak 6').grid(row = 8, column = 2)          
+
+        tk.Entry(TabList[num][1].AlgFrame, textvariable = TabList[num][1].ROIdown1, relief = 'sunken',
                   borderwidth = 2).grid(row = 3, column = 0)
-        tk.Entry(TabList[num][1].AlgFrame, textvariable = TabList[num][1].Algorithm, relief = 'sunken',
+        tk.Entry(TabList[num][1].AlgFrame, textvariable = TabList[num][1].ROIup1, relief = 'sunken',
                   borderwidth = 2).grid(row = 3, column = 1)
+        tk.Entry(TabList[num][1].AlgFrame, textvariable = TabList[num][1].ROIdown2, relief = 'sunken',
+                  borderwidth = 2).grid(row = 4, column = 0)
+        tk.Entry(TabList[num][1].AlgFrame, textvariable = TabList[num][1].ROIup2, relief = 'sunken',
+                  borderwidth = 2).grid(row = 4, column = 1)
+        tk.Entry(TabList[num][1].AlgFrame, textvariable = TabList[num][1].ROIdown3, relief = 'sunken',
+                  borderwidth = 2).grid(row = 5, column = 0)
+        tk.Entry(TabList[num][1].AlgFrame, textvariable = TabList[num][1].ROIup3, relief = 'sunken',
+                  borderwidth = 2).grid(row = 5, column = 1)
+        tk.Entry(TabList[num][1].AlgFrame, textvariable = TabList[num][1].ROIdown4, relief = 'sunken',
+                  borderwidth = 2).grid(row = 6, column = 0)
+        tk.Entry(TabList[num][1].AlgFrame, textvariable = TabList[num][1].ROIup4, relief = 'sunken',
+                  borderwidth = 2).grid(row = 6, column = 1)
+        tk.Entry(TabList[num][1].AlgFrame, textvariable = TabList[num][1].ROIdown5, relief = 'sunken',
+                  borderwidth = 2).grid(row = 7, column = 0)
+        tk.Entry(TabList[num][1].AlgFrame, textvariable = TabList[num][1].ROIup5, relief = 'sunken',
+                  borderwidth = 2).grid(row = 7, column = 1)
+        tk.Entry(TabList[num][1].AlgFrame, textvariable = TabList[num][1].ROIdown6, relief = 'sunken',
+                  borderwidth = 2).grid(row = 8, column = 0)
+        tk.Entry(TabList[num][1].AlgFrame, textvariable = TabList[num][1].ROIup6, relief = 'sunken',
+                  borderwidth = 2).grid(row = 8, column = 1)
         
         tk.Button(TabList[num][1].AlgFrame,text = 'Search', 
-                  command =  Threshold_Alg).grid(row = 4, column = 0)
+                  command = ROI_Select_Alg).grid(row = 9, column = 0)
         tk.Button(TabList[num][1].AlgFrame,text = 'Remove Unchecked',
-                  command = Unchecked_Results).grid(row = 4, column = 1)
+                  command = Unchecked_Results).grid(row = 9, column = 1)
         tk.Button(TabList[num][1].AlgFrame,text = 'Remove All',
-                  command = lambda: ClearWidget('Results', 1)).grid(row = 4, column = 2)
+                  command = lambda: ClearWidget('Results', 1)).grid(row = 9, column = 2)
 
 #############################################################################
 # Esta funcao muda uma linha de threshold, caso o utilizador escreva um numero
@@ -1742,6 +1773,21 @@ class Tabs:
         self.Algorithm.trace('w', on_entry_change)
         self.Algorithm.set(0)
 
+        self.ROIdown1 = tk.IntVar()
+        self.ROIup1 = tk.IntVar()
+        self.ROIdown2 = tk.IntVar()
+        self.ROIup2 = tk.IntVar()
+        self.ROIdown3 = tk.IntVar()
+        self.ROIup3 = tk.IntVar()
+        self.ROIdown4 = tk.IntVar()
+        self.ROIup4 = tk.IntVar()
+        self.ROIdown5 = tk.IntVar()
+        self.ROIup5 = tk.IntVar()        
+        self.ROIdown6 = tk.IntVar()
+        self.ROIup6 = tk.IntVar()
+
+
+
         self.units = tk.DoubleVar()
         unit = Unit_settings.get()
         self.units.set(unit)
@@ -1998,11 +2044,11 @@ class Plot:
         if Name[-4:] == ".mca":         #Por enquanto esta configurado para os ficheiros 
                                         # da maquina para AEL. Se for configurado RBS
                                         #ha-de-se incluir outro if.
-            for i in range(12, len(File) - 1):  
+            for i in range(12, len(File) - 1):         #### FOI ALTERADO POR CAUSA DA ROI NOS FICHEIROS !!!!!!
                 self.Counts.append(int(File[i]))
                 total_sum = total_sum + self.Counts[j]
-                self.Channel.append(i-11)
-                Data.write(str(self.Counts[i-12])+"\n")
+                self.Channel.append(i-11)               #### FOI ALTERADO POR CAUSA DA ROI NOS FICHEIROS !!!!!!
+                Data.write(str(self.Counts[i-12])+"\n") #### FOI ALTERADO POR CAUSA DA ROI NOS FICHEIROS !!!!!!
                 j += 1
 
             # Ciclo for para adquirir os valores dos dados
