@@ -11,6 +11,10 @@ from matplotlib.figure import Figure
 import os
 import math
 from shutil import copy2
+import numpy as np
+
+from Analyze import*
+from Calibration import*
 
 ########## Ajusta-se ao ecra e foca os widgets - Windows ######
 import ctypes
@@ -255,8 +259,12 @@ def Precision(value):
 def Final_Results(tracker):
 
     num = Current_Tab()
+    method = TabList[num][1].Algorithm_Method.get()
 
-    if tracker < 0:
+    if tracker < 0 and method == 'ROI Select':
+        LinearizeWithErrors()
+    
+    elif tracker < 0 and method != 'ROI Select':
         Linearize()
 
     elif tracker > 0:
@@ -593,6 +601,29 @@ def ResultManager():
         Result_Button.select()
         tk.Label(TabList[num][1].ResultFrame, 
                 text = '\t Counts: ' + str(values[j][1])).grid(row = j , column = 1)
+
+#########################################################################################
+# Recebe os resultados do algoritmo ROI Select e mostra no GUI
+########################################################################################
+def ROIResultManager():
+
+    num = Current_Tab()
+
+    ClearWidget('Results', 0) # A funcao e evocada para dar reset aos valores anteriores
+    TabList[num][1].ResultFrame.grid(row = 3, columnspan = 2, pady = 5)
+
+    values = File_Reader(TabList[num][3], ',', 'Yes', 'No') #Esta leitura devolve os valores de channel e counts
+
+    for j in range(0, len(values)): # O ciclo for apenas cria os checkbuttons e as labels para depois guardar
+                                    # os valores a serem apagados/usados nas funcoes seguintes
+
+        Result_Button = tk.Checkbutton(TabList[num][1].ResultFrame, variable = TabList[num][1].Var_Data[j],
+                onvalue = 1, offvalue = -1,
+                text = 'Centroid: ' + str("{:.1f}".format(values[j][0])))
+        Result_Button.grid(row = j , column = 0)
+        Result_Button.select()
+        tk.Label(TabList[num][1].ResultFrame, 
+                text = '\t \u03C3/\u221aN =  ' + str("{:.3f}".format(values[j][1]))).grid(row = j , column = 1)
         
 ##########################################################################################
 # Retira os resultados que nao estao checked e atualiza o txt dos resultados 
@@ -792,6 +823,112 @@ def Linearize():
         tk.Button(TabList[num][1].LinearRegressionFrame, text = 'Clear Regression', 
                   command = lambda: ClearWidget('Linear', 1 )).grid(row = 3, column = 0, columnspan = 3)
 
+#########################################################################################
+# Faz a regressao linear dos resultados com input da incerteza nosa canais
+#########################################################################################
+def LinearizeWithErrors():
+
+    num = Current_Tab()
+    
+    i = 0
+    centroids = []
+    errors = []
+    energies = []
+    values = File_Reader(TabList[num][3], ',', 'Yes', 'No') # Le os dados dos picos
+
+    for i in range(0, len(values)):
+        centroids.append(values[i][0])  # Junto os canais apenas ao valor xaxis
+        errors.append(values[i][1])
+    i = 0
+
+    for i in range(0, len(TabList[num][1].DecayList)):
+
+        if TabList[num][1].DecayList[i].get() != -1: 
+# Na lista que guarda os valores dos alfas, juntam se aqueles que foram selecionados pelo utilizador
+            energies.append(TabList[num][1].DecayList[i].get()) 
+            
+    
+    centroids = sorted(centroids) #Organizam se ambos dados por ordem
+    errors = sorted(errors)
+    energies = sorted(energies)
+    
+    if len(centroids) != len(energies): # Esta condicao verifica se para a regressao linear
+        # existe uma relacao sobrejetiva
+    
+        wng.popup('Invalid Linear Regression Configuration')
+        tk.Label(wng.warning, 
+                 text = "Number of Radiation Decay does not " + 
+                 "match the number of Peaks detected.\n").pack()
+        tk.Label(wng.warning, text ="Please adjust the Searching Algorithms or the " +
+                 "number of Decay Energy.\n\n").pack()
+        tk.Button(wng.warning, text = 'Return',
+                    command = lambda: wng.warning.destroy()).pack()
+      
+    else:
+
+        ClearWidget('Linear', 0)
+        TabList[num][1].LinearRegressionFrame.grid(row = 3, columnspan = 2, pady = 5)
+
+        ## Faz a a regressao linear com a função do ficheiro Calibration
+        m, b, sigma_m, sigma_b = Calib(energies, centroids, errors)
+
+        if TabList[num][1].energy.get() == 1000:
+            unit_string = 'MeV'
+            significant_digits_m = Precision('%.2g' % (sigma_m))
+            significant_digits_b = Precision('%.2g' % (sigma_b))
+
+        elif TabList[num][1].energy.get() == 1:
+
+            unit_string = 'keV'
+            m = m * 0.001
+            sigma_m = sigma_m * 0.001
+            b = b * 0.001
+            sigma_b = sigma_b * 0.001
+
+            if sigma_m > 1:
+                significant_digits_m = 0
+
+            else:
+                significant_digits_m = Precision('%.2g' % (sigma_m))
+            
+            if sigma_b > 1:
+                significant_digits_b = 0
+                            
+            else:
+                significant_digits_b = Precision('%.2g' % (sigma_b))
+
+        with open(TabList[num][4], 'w') as my_file:
+            # Aqui, escrevem se os resultados num documento txt para outras funcoes
+            # poderem aceder
+            my_file.write(unit_string + '\n')
+            my_file.write(str(m) + '\n')
+            my_file.write(str(sigma_m) + '\n')
+            my_file.write(str(b) + '\n')
+            my_file.write(str(sigma_b) + '\n')
+            my_file.write(str(significant_digits_m) + '\n')
+            my_file.write(str(significant_digits_b))
+
+        # Por fim, escreve se no GUI os resultados obtidos
+        tk.Label(TabList[num][1].LinearRegressionFrame, text = '(' + unit_string + ')').grid(
+            row = 0, column = 0)
+        tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Values').grid(row = 0, column = 1)
+        tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Uncertainty').grid(row = 0, column = 2)
+        tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Slope').grid(row = 1, column = 0)
+        tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Intersect').grid(row = 2, column = 0)
+
+        tk.Label(TabList[num][1].LinearRegressionFrame, 
+                 text = '%.*f' %(significant_digits_m, m)).grid(row = 1, column = 1)
+        tk.Label(TabList[num][1].LinearRegressionFrame, 
+                 text = '%.*f' % (significant_digits_m ,sigma_m)).grid(row = 1, column = 2)
+        tk.Label(TabList[num][1].LinearRegressionFrame, 
+                 text = '%.*f' %(significant_digits_b, b)).grid(row = 2, column = 1)
+        tk.Label(TabList[num][1].LinearRegressionFrame, 
+                 text = '%.*f' % (significant_digits_b  ,sigma_b)).grid(row = 2, column = 2)
+
+        tk.Button(TabList[num][1].LinearRegressionFrame, text = 'Clear Regression', 
+                  command = lambda: ClearWidget('Linear', 1 )).grid(row = 3, column = 0, columnspan = 3)
+
+
 ###############################################################################
 # Este e o algoritmo que determina a distancia quadrada minima entre pontos
 # input, e pontos de dados
@@ -911,7 +1048,38 @@ def Threshold_Alg():
 def ROI_Select_Alg():
     
     num = Current_Tab()
+    counts = File_Reader(TabList[num][2], '0', 'No', 'No')
+    print(type(counts[0]))
 
+    roi_down = [TabList[num][1].ROIdown1.get(),
+                TabList[num][1].ROIdown2.get(),
+                TabList[num][1].ROIdown3.get(),
+                TabList[num][1].ROIdown4.get(),
+                TabList[num][1].ROIdown5.get(),
+                TabList[num][1].ROIdown6.get()]
+    
+    roi_up = [  TabList[num][1].ROIup1.get(),
+                TabList[num][1].ROIup2.get(),
+                TabList[num][1].ROIup3.get(),
+                TabList[num][1].ROIup4.get(),
+                TabList[num][1].ROIup5.get(),
+                TabList[num][1].ROIup6.get()]
+
+
+    cents, errs = Analyze(counts, roi_down, roi_up)
+    print(cents)
+
+    if os.path.isfile(TabList[num][3]) == True:
+        with open(TabList[num][3], 'a') as results:
+            for i in range(len(cents)):
+                results.write(str(cents[i]) + ',' + str(errs[i]) + '\n')
+
+    elif os.path.isfile(TabList[num][3]) == False:
+        with open(TabList[num][3], 'w') as results:
+            for i in range(len(cents)):
+                results.write(str(cents[i]) + ',' + str(errs[i]) + '\n')
+
+    ROIResultManager()
     print('Muito Bom!')
     return
 
@@ -1580,9 +1748,9 @@ class Warnings:
         tk.Label(self.general_tab, 
                  text = 'Specify Thickness Units').grid(row = 1, column = 2, pady = 10, padx = 10)
 
-        tk.Radiobutton(self.general_tab, text = 'kEv', 
+        tk.Radiobutton(self.general_tab, text = 'kev', 
                        variable = TabList[num][1].energy, value = 1).grid(row = 2, column = 0)
-        tk.Radiobutton(self.general_tab, text = 'MEv', 
+        tk.Radiobutton(self.general_tab, text = 'Mev', 
                        variable = TabList[num][1].energy, value = 1000).grid(row = 3, column = 0)
         
 
@@ -1774,17 +1942,29 @@ class Tabs:
         self.Algorithm.set(0)
 
         self.ROIdown1 = tk.IntVar()
+        self.ROIdown1.set(1920)
         self.ROIup1 = tk.IntVar()
+        self.ROIup1.set(1980)
         self.ROIdown2 = tk.IntVar()
+        self.ROIdown2.set(1465)
         self.ROIup2 = tk.IntVar()
+        self.ROIup2.set(1525)
         self.ROIdown3 = tk.IntVar()
+        self.ROIdown3.set(1365)
         self.ROIup3 = tk.IntVar()
+        self.ROIup3.set(1415)
         self.ROIdown4 = tk.IntVar()
+        self.ROIdown4.set(1310)
         self.ROIup4 = tk.IntVar()
+        self.ROIup4.set(1360)
         self.ROIdown5 = tk.IntVar()
-        self.ROIup5 = tk.IntVar()        
+        self.ROIdown5.set(1225)
+        self.ROIup5 = tk.IntVar()
+        self.ROIup5.set(1285)        
         self.ROIdown6 = tk.IntVar()
+        self.ROIdown6.set(1135)
         self.ROIup6 = tk.IntVar()
+        self.ROIup6.set(1185)
 
 
 
