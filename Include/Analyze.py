@@ -20,5 +20,5 @@ def Analyze(y, ROId, ROIu):
         sigmas.append(Sigma)
         error.append(Sigma/np.sqrt(Net))
 
-    return centroids, error
+    return centroids, error, sigmas
 #################################################################

@@ -204,9 +204,12 @@ def File_Reader(Document, Separator, Decimal, Upload):
 
         for j in range(0, len(lines)): # Neste ciclo, sao transformados os resultados em int ou float,
                                         # conforme o input
-            for i in range(0, 2):
+            for i in range(0, len(Results[0])):
 
-                if Decimal == 'Yes':
+                if Results[j][i] == '':
+                    pass
+
+                elif Decimal == 'Yes':
                     Results[j][i] = float(Results[j][i])
 
                 elif Decimal == 'No':
@@ -465,14 +468,18 @@ def Final_Calculation():
 # o regressions_index guarda o indice do Tab Tracker
 # Com este valor, podemos aceder ao indice do TabList para obter todos os dados que queiramos
     for i in range(0, len(TabList[num][1].Regression_List)):
+
+        print(TabList[num][1].Regression_List[i].get())
         if TabList[num][1].Regression_List[i].get() != -1:
             regressions_index.append(TabTracker.index(-TabList[num][1].Regression_List[i].get()))
+
 
     i = 0
     j = 0
     Aux_Channel = []
     Temp = []
 
+    print(len(TabList[regressions_index[i]][1].DecayList))  ## algo de errado não está certo
     for j in range(0, len(TabList[regressions_index[i]][1].DecayList)):
         if TabList[regressions_index[0]][1].DecayList[j].get() != -1: # Aqui, vamos buscar os valores de
                                                                         # decaimento que a utilizar para o intervalo
@@ -672,14 +679,15 @@ def ROIResultManager():
 
     for j in range(0, len(values)): # O ciclo for apenas cria os checkbuttons e as labels para depois guardar
                                     # os valores a serem apagados/usados nas funcoes seguintes
-
         Result_Button = tk.Checkbutton(TabList[num][1].ResultFrame, variable = TabList[num][1].Var_Data[j],
                 onvalue = 1, offvalue = -1,
                 text = 'Centroid: ' + str("{:.1f}".format(values[j][0])))
         Result_Button.grid(row = j , column = 0)
         Result_Button.select()
         tk.Label(TabList[num][1].ResultFrame, 
-                text = '\t \u03C3/\u221aN =  ' + str("{:.3f}".format(values[j][1]))).grid(row = j , column = 1)
+                text = '\t \u03C3 =  ' + str("{:.1f}".format(values[j][2]))).grid(row = j , column = 1)
+        tk.Label(TabList[num][1].ResultFrame, 
+                text = '\t \u03C3/\u221aN =  ' + str("{:.3f}".format(values[j][1]))).grid(row = j , column = 2)
         
 ##########################################################################################
 # Retira os resultados que nao estao checked e atualiza o txt dos resultados 
@@ -1093,22 +1101,22 @@ def ROI_Select_Alg():
                 TabList[num][1].ROIup5.get(),
                 TabList[num][1].ROIup6.get()]
 
-    cents, errs = Analyze(counts, roi_down, roi_up)
+    cents, errs, sigmas  = Analyze(counts, roi_down, roi_up)
 
     if os.path.isfile(TabList[num][3]) == True:
         with open(TabList[num][3], 'a') as results:
             for i in range(len(cents)):
-                results.write(str(cents[i]) + ',' + str(errs[i]) + '\n')
+                results.write(str(cents[i]) + ',' + str(errs[i]) + ',' + str(sigmas[i]) + '\n')
 
     elif os.path.isfile(TabList[num][3]) == False:
         with open(TabList[num][3], 'w') as results:
             for i in range(len(cents)):
-                results.write(str(cents[i]) + ',' + str(errs[i]) + '\n')
+                results.write(str(cents[i]) + ',' + str(errs[i]) + ',' + str(sigmas[i]) + '\n')
 
     ROIResultManager()
     print('Muito Bom!')
     return
-
+  
 ###############################################################################
 # Esta e a funcao que abre as imagens da cadeia de decaimento
 ################################################################################
@@ -1200,7 +1208,6 @@ def handleTabChange(event):
                     command = lambda : Tabs.tab_change(3)).pack()
         # os numeros do tab_change indicam quais os tipos de tabs a adicionar
 
-
     elif len(Notebook.notebook.tabs()) >= 15:
         Notebook.notebook.hide(14)
         # Caso se chege ao numero 15 de tabs, o botao '+' e escondido
@@ -1266,7 +1273,6 @@ def Method(*args):
         TabList[num][1].Algorithm.set(0)
         TabList[num][5].destroyer()
      
-
     elif decider == 'Threshold Input':  #Definicao dos controlos para o algoritmo Threshold_Alg
         tk.Label(TabList[num][1].AlgFrame, 
                  text = 'Please input Threshold: ').grid(row = 2, columnspan = 3)
@@ -1446,7 +1452,6 @@ def File_Manager(Choice, Nature, Action):
                 
                 tk.Button(wng.warning, command =  lambda: wng.warning.destroy(), 
                           text = 'Return').pack()
-
 
     elif Choice == 'Material':
         if Action == 1:
@@ -1659,7 +1664,6 @@ class Warnings:
 
         # A class cria poopups que tem que ser fechados antes de voltarem para o skeleton
         # funciona bem para avisos, mas tambem para menus com opcoes obrigatorias de submeter
-
         self.warning = tk.Toplevel(window.main)
         self.warning.title(name)
         self.warning.geometry('700x300')
@@ -1714,13 +1718,11 @@ class Warnings:
         self.buttons_frame = tk.Frame(self.configuration)
         self.buttons_frame.pack()
 
-
         def close(choice):
 
             num = Current_Tab()
 
             if choice == 0:
-
                 TabList[num][1].units.set(wng.unit_value)
                 TabList[num][1].energy.set(wng.energy_value)
                 TabList[num][1].peaks_widths.set(wng.peak_interval)
@@ -1728,9 +1730,7 @@ class Warnings:
                 wng.configuration.destroy()
 
             elif choice == 1:
-
                 try:
-
                     TabList[num][1].peaks_widths.set(wng.entry2.get())
                     TabList[num][1].channels_cut.set(wng.entry1.get())
 
@@ -1741,9 +1741,7 @@ class Warnings:
                 wng.configuration.destroy()
 
             elif choice == 2:   
-
                 try:
-
                     TabList[num][1].peaks_widths.set(wng.entry2.get())
                     TabList[num][1].channels_cut.set(wng.entry1.get())
 
@@ -1751,7 +1749,6 @@ class Warnings:
                     TabList[num][1].peaks_widths.set(wng.peak_interval)
                     TabList[num][1].channels_cut.set(wng.cut_low_energy)    
                     
-
                 Energy_settings.set(TabList[num][1].energy.get())
                 Unit_settings.set(TabList[num][1].units.get())
 
@@ -1774,7 +1771,6 @@ class Warnings:
         tk.Radiobutton(self.general_tab, text = 'Mev', 
                        variable = TabList[num][1].energy, value = 1000).grid(row = 3, column = 0)
         
-
         tk.Radiobutton(self.general_tab, text = 'nm', 
                        variable= TabList[num][1].units, value = 10.0**9).grid(row = 2, column = 2)
         tk.Radiobutton(self.general_tab, text = '\u03bcm', 
@@ -1784,7 +1780,6 @@ class Warnings:
         tk.Radiobutton(self.general_tab, text = '10' + '{}'.format('\u00b9' + '\u2075') + ' Atoms' +
                        ' cm' + '{}'.format('\u207B' + '\u00b3'), 
                        variable= TabList[num][1].units, value = -1.0).grid(row = 5, column = 2)
-        
         
         ########################################################################################
 
@@ -1897,12 +1892,10 @@ class Tabs:
                               lambda e: self.calib_canvas.configure(
                                   scrollregion = self.calib_canvas.bbox('all'), width = e.width)) 
 
-
         self.Mat_Result = tk.Frame(self.CRFrame, borderwidth = 5, relief = 'ridge')
         self.Mat_Result.grid(row = 0, column = 1, pady = 10, padx = 30, sticky = 'ne', rowspan = 2)
         self.Mat_Result.columnconfigure(0, weight = 3)
         self.Mat_Result.columnconfigure(1, weight = 1)
-
 
         self.Mat_Result_Title = tk.Label(self.Mat_Result, 
                  text = '                       Material Trials Results                       \n')
@@ -1986,8 +1979,6 @@ class Tabs:
         self.ROIdown6.set(1138)
         self.ROIup6 = tk.IntVar()
         self.ROIup6.set(1183)
-
-
 
         self.units = tk.DoubleVar()
         unit = Unit_settings.get()
@@ -2130,7 +2121,6 @@ class Tabs:
             self.SourceOptionsFrame.grid(row = 2, columnspan = 2)
             self.LinearRegressionFrame = tk.Frame(self.SourceFrame, borderwidth = 1)
             
-        
         if choice == 1:
             CalibTab(self)
             
@@ -2164,7 +2154,6 @@ class Tabs:
             except:
                 ()
 
-            
         elif num == 2:
 
             Tabs.Counter_Mat += 1
@@ -2295,7 +2284,6 @@ class Plot:
         if self.line:
             self.line.pop().remove()
             self.figure_canvas.draw()
-
 
     def threshold(self, height):
 
