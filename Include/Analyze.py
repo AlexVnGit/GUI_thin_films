@@ -1,4 +1,4 @@
-from FitData import*
+from Include.FitData import*
 import numpy as np
 
 def Analyze(y, ROId, ROIu):
@@ -12,14 +12,13 @@ def Analyze(y, ROId, ROIu):
         x1 = float(ROId[r])
         x2 = float(ROIu[r])
 
-        Cent = float(peakCentroid(x1,x2,y))
-        Sigma = float(peakSigma(x1,x2,y))
-        Net = float(peakNet(x1,x2,y))
+        Cent = peakCentroid(x1,x2,y)
+        Sigma = peakSigma(x1,x2,y)
+        Net = peakNet(x1,x2,y)
 
         centroids.append(Cent)
         sigmas.append(Sigma)
-        error.append(Sigma/np.sqrt(float(Net)))
-
+        error.append(Sigma/np.sqrt(Net))
 
     return centroids, error
 #################################################################

@@ -13,8 +13,12 @@ import math
 from shutil import copy2
 import numpy as np
 
-from Analyze import*
-from Calibration import*
+from Include.Analyze import*
+from Include.Calibration import*
+from Include.FitData import*
+from Include.Eloss import*
+from Include.Thick import*
+
 
 ########## Ajusta-se ao ecra e foca os widgets - Windows ######
 import ctypes
@@ -211,9 +215,7 @@ def File_Reader(Document, Separator, Decimal, Upload):
         return Results
     
     else:
-
         i = 0
-
         if Decimal == 'String': # Caso queiramos apenas uma string, a funcao devolve logo o vetor lines
 
             return lines
@@ -267,8 +269,11 @@ def Final_Results(tracker):
     elif tracker < 0 and method != 'ROI Select':
         Linearize()
 
-    elif tracker > 0:
+    elif tracker > 0 and method != 'ROI Select':
         Final_Calculation()
+
+    elif tracker > 0 and method == 'ROI Select':
+        ROI_Thick_Calculation()
 
     elif tracker == 0:
         pass        
@@ -469,12 +474,10 @@ def Final_Calculation():
     Temp = []
 
     for j in range(0, len(TabList[regressions_index[i]][1].DecayList)):
-
         if TabList[regressions_index[0]][1].DecayList[j].get() != -1: # Aqui, vamos buscar os valores de
                                                                         # decaimento que a utilizar para o intervalo
             Aux_Channel.append(TabList[regressions_index[0]][1].DecayList[j].get()) # de stopping powers
     # Como a fonte e a mesma para todas as calibracoes, nao importa qual delas e selecionada
-
 
     Aux_Channel.sort()
     peaks = len(Aux_Channel) # Para referencia do tamanho
@@ -522,7 +525,6 @@ def Final_Calculation():
                 summed_values = summed_values + stopping_power # O somatorio que 
                 #resulta na aproximacao da espessura
                 
-
         if index == 0 :
             summed_values = summed_values / material_data[0][1]
             summed_values = summed_values * 10000
@@ -547,7 +549,6 @@ def Final_Calculation():
 
 
         if j == peaks - 1: # No ultimo run do ciclo for
-            
             i = 0
             thickness = thickness / len(Aux) # A fazer a media da espessura
  
@@ -578,6 +579,61 @@ def Final_Calculation():
     tk.Button(TabList[num][1].ThicknessFrame, 
               command = lambda: ClearWidget('Thickness', 1),
               text = 'Reset Results').grid(row = j + 4, columnspan = 2)
+
+#########################################################################################
+# Calculo da espessura no método ROI Select
+########################################################################################
+def ROI_Thick_Calculation():
+
+    num = Current_Tab() ## Get current tab's index nr
+    ClearWidget('Thickness', 0)
+    TabList[num][1].ThicknessFrame.grid(row = 5, columnspan = 3, pady = 5)
+    units_list = ['nm', '\u03bcm',
+                  '\u03bcg' + ' cm' + '{}'.format('\u207B' + '\u00b2'),
+                  '10' + '{}'.format('\u00b9' + '\u2075') + ' Atoms' 
+                   + ' cm' + '{}'.format('\u207B' + '\u00b3')]
+    units_values = [10.0**9, 10.0**6, 0.0, -1.0]
+    index = units_values.index(TabList[num][1].units.get())
+    
+    ## Get the selected material and stop. pow.
+    Material_choice = TabList[num][1].Mat.get() # Determina qual o ficheiro do material a ler
+    Material_choice = 'Files\Materials\\' +  Material_choice + '.txt'
+    material_data = File_Reader(Material_choice, '|', 'Yes', 'No') #Daqui obtemos a lista que ira guardar
+
+    ## Get energies of selected source
+    energies = [TabList[0][1].DecayList[k].get() for k in range(len(TabList[0][1].DecayList))]
+    energies.remove(-1.0) ## Remove unselected energies
+
+    ## Get slope and intercept of the selected calib
+    calib_params = File_Reader(TabList[0][4], '0', 'String', 'No')
+    ## Check energy units to match the stop. pow. ones
+    if calib_params[0] == 'keV':
+        m = str(float(calib_params[1])*1000) ## slope
+        dm = str(float(calib_params[2])*1000) ## slope uncertainty
+    else:  ###   !!!!!!!!!!    VERIFICAR ESTA PARTE   !!!!!!!!!!!   ###
+        m = str(float(calib_params[1])*1000) 
+        dm = str(float(calib_params[2])*1000) 
+
+    ## Get calibration centroids
+    calibCents = [File_Reader(TabList[0][3], ',', 'Yes', 'No')[k][0] for k in range(len(File_Reader(TabList[0][3], ',', 'Yes', 'No')))]
+    ## Get calibration peak error
+    calibErr = [File_Reader(TabList[0][3], ',', 'Yes', 'No')[k][1] for k in range(len(File_Reader(TabList[0][3], ',', 'Yes', 'No')))]
+    ## Get film centroids
+    filmCents = [File_Reader(TabList[num][3], ',', 'Yes', 'No')[k][0] for k in range(len(File_Reader(TabList[num][3], ',', 'Yes', 'No')))]
+    ## Get film peak error
+    filmErr = [File_Reader(TabList[num][3], ',', 'Yes', 'No')[k][1] for k in range(len(File_Reader(TabList[num][3], ',', 'Yes', 'No')))]
+    
+    ## Calculate energy loss and uncertainty, returning min and max energy of alphas after crossing the film
+    Emin, Emax = Eloss(energies, calibCents, filmCents, calibErr, filmErr, m, dm)
+
+    ## Get selected material stop. pow.
+    Material_choice = TabList[num][1].Mat.get() 
+    Material_choice = 'Files\Materials\\' +  Material_choice + '.txt'
+    material_data = File_Reader(Material_choice, '|', 'Yes', 'No')
+
+    ## Calculate thickness from energy loss
+    Thickness(energies, Emin, Emax, material_data)
+    return
 
 #########################################################################################
 # Recebe os resultados dos algoritmos e mostra no GUI
@@ -756,7 +812,6 @@ def Linearize():
 
         # Estes proximos somatorios e contas servem para obter as incertezas dos valores do
         # declive e da ordenada de origem
-
         for i in range(0, len(xvalues)):
             sigma = (yvalues[i] - m * xvalues[i] - b)**2 + sigma
             Placeholder1 = xvalues[i]**2 + Placeholder1
@@ -773,22 +828,17 @@ def Linearize():
             significant_digits_b = Precision('%.2g' % (sigma_b))
 
         elif TabList[num][1].energy.get() == 1:
-
             unit_string = 'keV'
-            m = m * 0.001
-            sigma_m = sigma_m * 0.001
-            b = b * 0.001
-            sigma_b = sigma_b * 0.001
-
+            m = m * 1000
+            sigma_m = sigma_m * 1000
+            b = b * 1000
+            sigma_b = sigma_b * 1000
             if sigma_m > 1:
                 significant_digits_m = 0
-
             else:
                 significant_digits_m = Precision('%.2g' % (sigma_m))
-            
             if sigma_b > 1:
-                significant_digits_b = 0
-                            
+                significant_digits_b = 0            
             else:
                 significant_digits_b = Precision('%.2g' % (sigma_b))
 
@@ -812,13 +862,13 @@ def Linearize():
         tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Intersect').grid(row = 2, column = 0)
 
         tk.Label(TabList[num][1].LinearRegressionFrame, 
-                 text = '%.*f' %(significant_digits_m, m)).grid(row = 1, column = 1)
+                 text = '%.*f' %(6, m)).grid(row = 1, column = 1)
         tk.Label(TabList[num][1].LinearRegressionFrame, 
-                 text = '%.*f' % (significant_digits_m ,sigma_m)).grid(row = 1, column = 2)
+                 text = '%.*f' % (6, sigma_m)).grid(row = 1, column = 2)
         tk.Label(TabList[num][1].LinearRegressionFrame, 
-                 text = '%.*f' %(significant_digits_b, b)).grid(row = 2, column = 1)
+                 text = '%.*f' %(6, b)).grid(row = 2, column = 1)
         tk.Label(TabList[num][1].LinearRegressionFrame, 
-                 text = '%.*f' % (significant_digits_b  ,sigma_b)).grid(row = 2, column = 2)
+                 text = '%.*f' % (6, sigma_b)).grid(row = 2, column = 2)
 
         tk.Button(TabList[num][1].LinearRegressionFrame, text = 'Clear Regression', 
                   command = lambda: ClearWidget('Linear', 1 )).grid(row = 3, column = 0, columnspan = 3)
@@ -830,7 +880,6 @@ def LinearizeWithErrors():
 
     num = Current_Tab()
     
-    i = 0
     centroids = []
     errors = []
     energies = []
@@ -839,22 +888,18 @@ def LinearizeWithErrors():
     for i in range(0, len(values)):
         centroids.append(values[i][0])  # Junto os canais apenas ao valor xaxis
         errors.append(values[i][1])
-    i = 0
 
     for i in range(0, len(TabList[num][1].DecayList)):
-
         if TabList[num][1].DecayList[i].get() != -1: 
-# Na lista que guarda os valores dos alfas, juntam se aqueles que foram selecionados pelo utilizador
+            # Na lista que guarda os valores dos alfas, juntam se aqueles que foram selecionados pelo utilizador
             energies.append(TabList[num][1].DecayList[i].get()) 
             
-    
     centroids = sorted(centroids) #Organizam se ambos dados por ordem
     errors = sorted(errors)
     energies = sorted(energies)
     
     if len(centroids) != len(energies): # Esta condicao verifica se para a regressao linear
-        # existe uma relacao sobrejetiva
-    
+                                        # existe uma relacao sobrejetiva
         wng.popup('Invalid Linear Regression Configuration')
         tk.Label(wng.warning, 
                  text = "Number of Radiation Decay does not " + 
@@ -874,28 +919,13 @@ def LinearizeWithErrors():
 
         if TabList[num][1].energy.get() == 1000:
             unit_string = 'MeV'
-            significant_digits_m = Precision('%.2g' % (sigma_m))
-            significant_digits_b = Precision('%.2g' % (sigma_b))
 
         elif TabList[num][1].energy.get() == 1:
-
             unit_string = 'keV'
-            m = m * 0.001
-            sigma_m = sigma_m * 0.001
-            b = b * 0.001
-            sigma_b = sigma_b * 0.001
-
-            if sigma_m > 1:
-                significant_digits_m = 0
-
-            else:
-                significant_digits_m = Precision('%.2g' % (sigma_m))
-            
-            if sigma_b > 1:
-                significant_digits_b = 0
-                            
-            else:
-                significant_digits_b = Precision('%.2g' % (sigma_b))
+            m = m * 1000
+            sigma_m = sigma_m * 1000
+            b = b * 1000
+            sigma_b = sigma_b * 1000
 
         with open(TabList[num][4], 'w') as my_file:
             # Aqui, escrevem se os resultados num documento txt para outras funcoes
@@ -905,8 +935,8 @@ def LinearizeWithErrors():
             my_file.write(str(sigma_m) + '\n')
             my_file.write(str(b) + '\n')
             my_file.write(str(sigma_b) + '\n')
-            my_file.write(str(significant_digits_m) + '\n')
-            my_file.write(str(significant_digits_b))
+            my_file.write(str(6) + '\n')
+            my_file.write(str(6))
 
         # Por fim, escreve se no GUI os resultados obtidos
         tk.Label(TabList[num][1].LinearRegressionFrame, text = '(' + unit_string + ')').grid(
@@ -917,17 +947,16 @@ def LinearizeWithErrors():
         tk.Label(TabList[num][1].LinearRegressionFrame, text = 'Intersect').grid(row = 2, column = 0)
 
         tk.Label(TabList[num][1].LinearRegressionFrame, 
-                 text = '%.*f' %(significant_digits_m, m)).grid(row = 1, column = 1)
+                 text = '%.*f' %(6, m)).grid(row = 1, column = 1)
         tk.Label(TabList[num][1].LinearRegressionFrame, 
-                 text = '%.*f' % (significant_digits_m ,sigma_m)).grid(row = 1, column = 2)
+                 text = '%.*f' % (6, sigma_m)).grid(row = 1, column = 2)
         tk.Label(TabList[num][1].LinearRegressionFrame, 
-                 text = '%.*f' %(significant_digits_b, b)).grid(row = 2, column = 1)
+                 text = '%.*f' %(6, b)).grid(row = 2, column = 1)
         tk.Label(TabList[num][1].LinearRegressionFrame, 
-                 text = '%.*f' % (significant_digits_b  ,sigma_b)).grid(row = 2, column = 2)
+                 text = '%.*f' % (6, sigma_b)).grid(row = 2, column = 2)
 
         tk.Button(TabList[num][1].LinearRegressionFrame, text = 'Clear Regression', 
                   command = lambda: ClearWidget('Linear', 1 )).grid(row = 3, column = 0, columnspan = 3)
-
 
 ###############################################################################
 # Este e o algoritmo que determina a distancia quadrada minima entre pontos
@@ -1048,8 +1077,7 @@ def Threshold_Alg():
 def ROI_Select_Alg():
     
     num = Current_Tab()
-    counts = File_Reader(TabList[num][2], '0', 'No', 'No')
-    print(type(counts[0]))
+    counts = File_Reader(TabList[num][2], '0', 'Yes', 'No')
 
     roi_down = [TabList[num][1].ROIdown1.get(),
                 TabList[num][1].ROIdown2.get(),
@@ -1065,9 +1093,7 @@ def ROI_Select_Alg():
                 TabList[num][1].ROIup5.get(),
                 TabList[num][1].ROIup6.get()]
 
-
     cents, errs = Analyze(counts, roi_down, roi_up)
-    print(cents)
 
     if os.path.isfile(TabList[num][3]) == True:
         with open(TabList[num][3], 'a') as results:
@@ -1197,7 +1223,6 @@ def SourceReader(*args):
     Alpha = TabList[num][1].Source.get()
     Alpha = 'Files\Sources\Values\\' +  Alpha + '.txt' # Esta adicao garante que o programa 
                                                     #encontra o ficheiro pretendido
-
     with open(Alpha, 'r') as file: # Aqui vai-se buscar todas as opcoes possiveis contidas no ficheiro
                                     # das fontes de radiacao
         Decay = [float(line) for line in file]
@@ -1354,7 +1379,6 @@ def File_Manager(Choice, Nature, Action):
                     copy2(filename, dir, follow_symlinks=True)
 
             else:
-
                 domain = 'Files\Sources\Values'
                 dir = os.scandir(domain)
                 wng.popup('Delete Alpha Source Files')
@@ -1399,7 +1423,6 @@ def File_Manager(Choice, Nature, Action):
                     copy2(filename, dir, follow_symlinks=True)
             
             else:
-
                 domain = 'Files\Sources\Images'
                 dir = os.scandir(domain)
                 wng.popup('Delete Alpha Source Chain Images')
@@ -1437,7 +1460,6 @@ def File_Manager(Choice, Nature, Action):
                 copy2(filename, dir, follow_symlinks=True)
         
         else:
-
             domain = 'Files\Materials'
             dir = os.scandir(domain)
             wng.popup('Delete Material Files')
@@ -1617,7 +1639,6 @@ class Skeleton:
         __files_data.add_command(label = 'Remove Material File',
                                  command = lambda: File_Manager('Material', 0, 0))
         
-
             # Abre o html de Help
         self.menu.add_command(label = 'Help', command = lambda: wng.Help())
 
@@ -1942,29 +1963,29 @@ class Tabs:
         self.Algorithm.set(0)
 
         self.ROIdown1 = tk.IntVar()
-        self.ROIdown1.set(1920)
+        self.ROIdown1.set(1927)
         self.ROIup1 = tk.IntVar()
-        self.ROIup1.set(1980)
+        self.ROIup1.set(1973)
         self.ROIdown2 = tk.IntVar()
-        self.ROIdown2.set(1465)
+        self.ROIdown2.set(1466)
         self.ROIup2 = tk.IntVar()
-        self.ROIup2.set(1525)
+        self.ROIup2.set(1522)
         self.ROIdown3 = tk.IntVar()
-        self.ROIdown3.set(1365)
+        self.ROIdown3.set(1364)
         self.ROIup3 = tk.IntVar()
-        self.ROIup3.set(1415)
+        self.ROIup3.set(1412)
         self.ROIdown4 = tk.IntVar()
         self.ROIdown4.set(1310)
         self.ROIup4 = tk.IntVar()
         self.ROIup4.set(1360)
         self.ROIdown5 = tk.IntVar()
-        self.ROIdown5.set(1225)
+        self.ROIdown5.set(1228)
         self.ROIup5 = tk.IntVar()
-        self.ROIup5.set(1285)        
+        self.ROIup5.set(1284)        
         self.ROIdown6 = tk.IntVar()
-        self.ROIdown6.set(1135)
+        self.ROIdown6.set(1138)
         self.ROIup6 = tk.IntVar()
-        self.ROIup6.set(1185)
+        self.ROIup6.set(1183)
 
 
 

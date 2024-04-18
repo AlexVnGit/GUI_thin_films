@@ -1,9 +1,11 @@
-from Data2List import*
+from Include.Data2List import*
 from matplotlib.pylab import *
 
-def Thickness(Energies, Emin, Emax):
+def Thickness(Energies, Emin, Emax, material):
     ### Calculo da espessura
-    energies, stopPow = Material2List('Sn.txt')
+    density = material[0][1]
+    energies = [float(material[i][0]) for i in range(1,len(material))] # MeV
+    stopPow = [float(material[i][1])*density for i in range(1,len(material))]  # MeV/cm
 
     Thick_max = []
     Thick_min = []
@@ -12,11 +14,8 @@ def Thickness(Energies, Emin, Emax):
 
         thick_max = 0
         thick_min = 0
-
         for i in range(len(stopPow)):
-            #print('energies[i] = ', energies[i])
             if energies[i] >= Emax[p] and energies[i] <= Energies[p]:
-                #print('energies[i] = ', energies[i])
                 thick_max += 0.001/stopPow[i]
 
             if energies[i] >= Emin[p] and energies[i] <= Energies[p]:
@@ -24,9 +23,6 @@ def Thickness(Energies, Emin, Emax):
 
         Thick_max.append(thick_max)
         Thick_min.append(thick_min)
-
-    print(Thick_max)
-    print(Thick_min)
 
     thick_min = mean(Thick_max)
     thick_max = mean(Thick_min)

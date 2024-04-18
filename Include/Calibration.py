@@ -1,9 +1,6 @@
 #coding:utf8
 
-from matplotlib.pylab import *
-import matplotlib.pyplot as plt
-import numpy as np
-from scipy import stats
+from matplotlib.pylab import*
 
 def Calib(E, Ch, dCh):
    
@@ -13,7 +10,6 @@ def Calib(E, Ch, dCh):
     sxx=0.0
     syy=0.0
     sinv=0.0
-#   delta=0.0
 
     for i in range(0,len(Ch)): #De acordo com as listas criadas, calcula os somatórios
                                     #que usamos de seguida
@@ -22,8 +18,7 @@ def Calib(E, Ch, dCh):
         sxy+=(E[i]*Ch[i])/((dCh[i])**2)
         sxx+=((E[i])**2)/((dCh[i])**2)
         syy+=((Ch[i])**2)/((dCh[i])**2)
-        sinv+= 1/((dCh[i])**2)
-            
+        sinv+= 1/((dCh[i])**2)     
     delta = sinv*sxx - (sx*sx)
 
     m=(sinv*sxy-sx*sy)/(delta) #Calcula o declive
