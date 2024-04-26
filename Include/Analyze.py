@@ -9,16 +9,19 @@ def Analyze(y, ROId, ROIu):
 
     for r in range(len(ROId)):
 
-        x1 = float(ROId[r])
-        x2 = float(ROIu[r])
+        if ROId[r] == 0 or ROId[r] == '' or ROIu[r] == 0 or ROIu[r] == '':
+            pass
+        else:
+            x1 = float(ROId[r])
+            x2 = float(ROIu[r])
 
-        Cent = peakCentroid(x1,x2,y)
-        Sigma = peakSigma(x1,x2,y)
-        Net = peakNet(x1,x2,y)
+            Cent = peakCentroid(x1,x2,y)
+            Sigma = peakSigma(x1,x2,y)
+            Net = peakNet(x1,x2,y)
 
-        centroids.append(Cent)
-        sigmas.append(Sigma)
-        error.append(Sigma/np.sqrt(Net))
-
+            centroids.append(Cent)
+            sigmas.append(Sigma)
+            error.append(Sigma/np.sqrt(Net))
+            
     return centroids, error, sigmas
 #################################################################

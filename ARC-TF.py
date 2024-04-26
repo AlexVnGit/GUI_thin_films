@@ -403,23 +403,18 @@ def Calib_Choice():
 
             if os.path.isfile(TabList[i][4]) == True:
                 Measure.append(TabTracker[i])
-
     # Neste ciclo, o measure regista quantas tabs de calibracao tem uma regressao linear,
     # ja que o tabtracker identifica as tabs de calibracao como sendo negativas,
     # o measure tera sempre valores entre -1 e -10
 
     if not Measure:
-
         wng.popup('No Linear Regressions detected')
         tk.Label(wng.warning, text = 'No linear Regressions were detected.\n\n' + 
                  'Please Perform a Calibration Trial before calculating the Film\'s Thickness.\n\n').pack()
         tk.Button(wng.warning, text = 'Return', command = lambda: wng.warning.destroy()).pack()
+    # No caso do Measure estar vazio, aparece um aviso que nenhuma regressao linear foi efetuada
 
-    # No caso do Measure estar vario, aparece um aviso que nenhuma regressao linear foi efetuada
-
-    
     else: # Caso contrario, entra o popup para selecionar quais as regressoes a utilizar
-
         wng.popup('Linear Regression Selection Menu')
         tk.Label(wng.warning, text = 'Please Select a Calibration Trial \n' +
                  'Choosing more than one calibration will average the slopes and intersects.\n\n').pack()
@@ -431,7 +426,6 @@ def Calib_Choice():
                                             variable = TabList[num][1].Regression_List[i], 
                                             onvalue = -Measure[i], offvalue = -1)
             button_Choice.pack()
-
         # Neste ciclo, por cada regressao linear efetuada, o utilizador pode esolher utilizar uma ou
         # mais, para a calibracao. A Regression_List guarda valores 1 ou -1 sendo que o indice desta
         # lista, e utilizado depois nos calculos finais
@@ -461,25 +455,22 @@ def Final_Calculation():
     intersect = 0
     points = []
     regressions_index = []
-    material_data = File_Reader(Material_choice, '|', 'Yes', 'No') #Daqui obtemos a lista que ira guardar
-    # as energias e o stopping power do material em uso
+    material_data = File_Reader(Material_choice, '|', 'Yes', 'No')  #Daqui obtemos a lista que ira guardar
+                                                                    # as energias e o stopping power do material em uso
 
 # Este ciclo determina a tab de calibracao cuja regressao foi selecionada para uso
 # o regressions_index guarda o indice do Tab Tracker
 # Com este valor, podemos aceder ao indice do TabList para obter todos os dados que queiramos
     for i in range(0, len(TabList[num][1].Regression_List)):
 
-        print(TabList[num][1].Regression_List[i].get())
         if TabList[num][1].Regression_List[i].get() != -1:
             regressions_index.append(TabTracker.index(-TabList[num][1].Regression_List[i].get()))
-
 
     i = 0
     j = 0
     Aux_Channel = []
     Temp = []
 
-    print(len(TabList[regressions_index[i]][1].DecayList))  ## algo de errado não está certo
     for j in range(0, len(TabList[regressions_index[i]][1].DecayList)):
         if TabList[regressions_index[0]][1].DecayList[j].get() != -1: # Aqui, vamos buscar os valores de
                                                                         # decaimento que a utilizar para o intervalo
@@ -554,7 +545,6 @@ def Final_Calculation():
         tk.Label(TabList[num][1].ThicknessFrame, text = str(points[j][0])).grid(
                 row = j + 1, column = 1)
 
-
         if j == peaks - 1: # No ultimo run do ciclo for
             i = 0
             thickness = thickness / len(Aux) # A fazer a media da espessura
@@ -601,6 +591,9 @@ def ROI_Thick_Calculation():
                    + ' cm' + '{}'.format('\u207B' + '\u00b3')]
     units_values = [10.0**9, 10.0**6, 0.0, -1.0]
     index = units_values.index(TabList[num][1].units.get())
+    calibration = TabList[num][1].Regression_List[0].get() ## vamos selecionar apenas uma calibração
+
+    print('Calibration = ', calibration)
     
     ## Get the selected material and stop. pow.
     Material_choice = TabList[num][1].Mat.get() # Determina qual o ficheiro do material a ler
@@ -631,7 +624,7 @@ def ROI_Thick_Calculation():
     filmErr = [File_Reader(TabList[num][3], ',', 'Yes', 'No')[k][1] for k in range(len(File_Reader(TabList[num][3], ',', 'Yes', 'No')))]
     
     ## Calculate energy loss and uncertainty, returning min and max energy of alphas after crossing the film
-    Emin, Emax = Eloss(energies, calibCents, filmCents, calibErr, filmErr, m, dm)
+    Emin, Emax, eloss = Eloss(energies, calibCents, filmCents, calibErr, filmErr, m, dm)
 
     ## Get selected material stop. pow.
     Material_choice = TabList[num][1].Mat.get() 
@@ -639,7 +632,27 @@ def ROI_Thick_Calculation():
     material_data = File_Reader(Material_choice, '|', 'Yes', 'No')
 
     ## Calculate thickness from energy loss
-    Thickness(energies, Emin, Emax, material_data)
+    thickPeak = Thickness(energies, Emin, Emax, material_data)
+
+    ## Display results in the frame
+    ## header
+    tk.Label(TabList[num][1].ThicknessFrame, text = 'Peak Energy\n(MeV)').grid(row = 0, column = 0)
+    tk.Label(TabList[num][1].ThicknessFrame, text = ' ').grid(row = 0, column = 1) #spacer
+    tk.Label(TabList[num][1].ThicknessFrame, text = 'Channel\n').grid(row = 0, column = 2)
+    tk.Label(TabList[num][1].ThicknessFrame, text = ' ').grid(row = 0, column = 3) #spacer
+    tk.Label(TabList[num][1].ThicknessFrame, text = 'Eloss\n(keV)').grid(row = 0, column = 4)
+    tk.Label(TabList[num][1].ThicknessFrame, text = ' ').grid(row = 0, column = 5) #spacer
+    tk.Label(TabList[num][1].ThicknessFrame, text = 'Thickness\n(' + units_list[index] + ')').grid(row = 0, column = 6)
+    ## peak info
+    for k in range(len(eloss)):
+        tk.Label(TabList[num][1].ThicknessFrame, text = '%.3f' % (energies[k]) ).grid(row = k + 1, column = 0)
+        tk.Label(TabList[num][1].ThicknessFrame, text = ' ').grid(row = 0, column = 1) #spacer
+        tk.Label(TabList[num][1].ThicknessFrame, text = '%.1f' % (filmCents[k]) ).grid(row = k + 1, column = 2)
+        tk.Label(TabList[num][1].ThicknessFrame, text = ' ').grid(row = 0, column = 3) #spacer
+        tk.Label(TabList[num][1].ThicknessFrame, text = '%.0f' % (eloss[k]) ).grid(row = k + 1, column = 4)
+        tk.Label(TabList[num][1].ThicknessFrame, text = ' ').grid(row = 0, column = 5) #spacer
+        tk.Label(TabList[num][1].ThicknessFrame, text = '%.0f' % (thickPeak[k]) ).grid(row = k + 1, column = 6)
+ 
     return
 
 #########################################################################################
@@ -656,7 +669,6 @@ def ResultManager():
 
     for j in range(0, len(values)): # O ciclo for apenas cria os checkbuttons e as labels para depois guardar
                                     # os valores a serem apagados/usados nas funcoes seguintes
-
         Result_Button = tk.Checkbutton(TabList[num][1].ResultFrame, variable = TabList[num][1].Var_Data[j],
                 onvalue = 1, offvalue = -1,
                 text = 'Channel: ' + str(values[j][0]))
@@ -709,7 +721,6 @@ def Unchecked_Results():
     values = File_Reader(TabList[num][3], '0', 'String', 'No') # Aqui vao se buscar os valores de channel e counts
                                                         # Como nao se fazem contas, apenas utilizamos a linha de
                                                         # string que contem ambos valores
-    
     for i in range(len(TabList[num][1].Var_Data)):
 
         if TabList[num][1].Var_Data[i].get() == 1:
@@ -717,7 +728,6 @@ def Unchecked_Results():
                                     # o documento que contem os resultados, de forma a guardar os pretendidos
     
         elif TabList[num][1].Var_Data[i].get() == -1: 
-
             # No caso do Var_data devolver um -1, significa que se removeu a selecao do valor
             # Nesse caso, tornamos esse valor num 0, destruimos o checkbutton no Eraser[j]
             # e destruimos a label dos counts no Eraser[j + 1]
@@ -727,7 +737,6 @@ def Unchecked_Results():
             Eraser[j + 1].destroy()
 
         elif TabList[num][1].Var_Data[i].get() == 0:
-
             # Caso haja um 0 no meio, na mudanca de dados, tiramos valores de iteracao do vetor Aux
             # e do vetor Eraser, para manter todas as contas certas
             k -= 1
@@ -736,8 +745,6 @@ def Unchecked_Results():
         j += 2
         k += 1
 
-    i = 0
-
     for i in range(len(TabList[num][1].Var_Data)):
         # Este for esta separado para nao haver confusoes de indices no primeiro ciclo
         # Aqui, se for detetado um 0, pomos o IntVar no final do vetor Var_Data e
@@ -745,8 +752,6 @@ def Unchecked_Results():
         if TabList[num][1].Var_Data[i].get() == 0:
             TabList[num][1].Var_Data.append(TabList[num][1].Var_Data[i])
             TabList[num][1].Var_Data.pop(i)
-
-    i = 0
 
     with open(TabList[num][3], "w") as file: # Por fim, reescrevemos o documento dos resultados
                                             # com os resultados unchecked removidos
@@ -760,15 +765,12 @@ def Linearize():
 
     num = Current_Tab()
     
-    i = 0
     xaxis = []
     yaxis = []
     values = File_Reader(TabList[num][3], ',', 'No', 'No') # Le os dados dos picos
 
     for i in range(0, len(values)):
         xaxis.append(values[i][0])  # Junto os canais apenas ao valor xaxis
-
-    i = 0
 
     for i in range(0, len(TabList[num][1].DecayList)):
 
@@ -781,8 +783,7 @@ def Linearize():
     yvalues = sorted(yaxis)
     
     if len(xvalues) != len(yvalues): # Esta condicao verifica se para a regressao linear
-        # existe uma relacao sobrejetiva
-    
+                                     # existe uma relacao sobrejetiva
         wng.popup('Invalid Linear Regression Configuration')
         tk.Label(wng.warning, 
                  text = "Number of Radiation Decay does not " + 
@@ -793,7 +794,6 @@ def Linearize():
                     command = lambda: wng.warning.destroy()).pack()
       
     else:
-
         ClearWidget('Linear', 0)
         TabList[num][1].LinearRegressionFrame.grid(row = 3, columnspan = 2, pady = 5)
 
@@ -804,7 +804,6 @@ def Linearize():
 
         Placeholder1 = 0
         Placeholder2 = 0
-        i = 0
 
         for i in range(len(xvalues)):
             Placeholder1 = Placeholder1 + ((xvalues[i] - avgx) * (yvalues[i] - avgy))
@@ -814,7 +813,6 @@ def Linearize():
         b = avgy - m * avgx  # Valor da ordenada na origem
 
         sigma = 0
-        i = 0
         Placeholder1 = 0
         Placeholder2 = 0
 
@@ -918,7 +916,6 @@ def LinearizeWithErrors():
                     command = lambda: wng.warning.destroy()).pack()
       
     else:
-
         ClearWidget('Linear', 0)
         TabList[num][1].LinearRegressionFrame.grid(row = 3, columnspan = 2, pady = 5)
 
@@ -1002,7 +999,6 @@ def ManSelec_Alg(Valuex, Valuey):
 def Threshold_Alg():
 
     num = Current_Tab()
-
     Counts = File_Reader(TabList[num][2], '0', 'No', 'No')
 
     Threshold = TabList[num][1].Algorithm.get()
@@ -1025,44 +1021,32 @@ def Threshold_Alg():
        # (this may even be useful for FWHM calculations).
        
         if count > Threshold and i > cut:
-
                 current_peak_counts += count
                 current_peak.append(count)
-
         else:
-
             counter += 1
-
             #Just checking that our current_peak list is not empty, 
             #if it is then we're out of a peak and this will just skip this if statment
             #but if it is not, then we're at the end of a peak 
             #(count is now <= Threshold) and we should save the max value of
             #current_peak and put everything to zero (aka move to the next peak)
-
             if current_peak:
-
                     yaxis.append(max(current_peak))
                     xaxis.append(counter + current_peak.index(max(current_peak)))
-
                     if len(xaxis) > 1:
-                        if xaxis[j] - xaxis[j-1] < width:
-                            
+                        if xaxis[j] - xaxis[j-1] < width:  
                             decider = max(yaxis[j-1], yaxis[j])
-
                             if decider == yaxis[j]:
                                 yaxis.pop(j-1)
                                 xaxis.pop(j-1)
                             elif decider == yaxis[j-1]:
                                 yaxis.pop(j)
                                 xaxis.pop(j)
-
                             j -= 1
-
                     counter = counter + len(current_peak)
                     current_peak_counts = 0
                     current_peak = []
                     j += 1
-                
         i += 1
 
     if os.path.isfile(TabList[num][3]) == True:
@@ -1081,7 +1065,6 @@ def Threshold_Alg():
 ###############################################################################
 # Funcao para o algoritmo ROI Select
 ################################################################################
-    
 def ROI_Select_Alg():
     
     num = Current_Tab()
@@ -1234,7 +1217,6 @@ def SourceReader(*args):
                                     # das fontes de radiacao
         Decay = [float(line) for line in file]
 
-    i = 0
     for i in range(len(Decay)): # Aqui esta a criacao dos checkbuttons para selecionar os valores que o 
                                 # utilizador pretende empregrar nos calculos
         checkbutton = tk.Checkbutton(TabList[num][1].SourceOptionsFrame, text = str(Decay[i]) + ' MeV',
@@ -1244,8 +1226,7 @@ def SourceReader(*args):
 
     tk.Button(TabList[num][1].SourceOptionsFrame, # Mostra uma imagem da cadeia 
               text = 'Show Decay Chain', command = showimage).grid(row = i + 1, column = 0)
-    tk.Button(TabList[num][1].SourceOptionsFrame, text = 'Linear Regression',  # Efetua a regressao
-                                                    # linear e poe os resultados na primeira tab
+    tk.Button(TabList[num][1].SourceOptionsFrame, text = 'Linear Regression',  # Efetua a regressao linear e poe os resultados na primeira tab
               command = lambda: Final_Results(value)).grid(row = i + 1, column = 1)
     
 ##############################################################################
@@ -1518,11 +1499,8 @@ def Save_Results():
     file = fd.asksaveasfile(title = 'Save Results', initialdir = ",", filetypes = domain, defaultextension = ".txt")
 
     if file:
-
         file.write('The Results calculated by NUC-RIA\'s ARC-TF were the following:\n\n')
-
         for i in range(0, len(TabTracker)):
-            j = 0
             if TabTracker[i] < 0:
                 file.write('Calibration Trial ' + str(-TabTracker[i]) + '\n\n')
                 file.write('The detected Peaks and Counts were: \n \n')
@@ -1543,11 +1521,7 @@ def Save_Results():
                            u"\u00B1" + ' ' + '%.*f' % (int(Regression[6]), float(Regression[4])) + '\n')
                 file.write('_______________________________________________________________\n\n')
 
-        i = 0
-        j = 0
-
         for i in range(0, len(TabTracker)):
-            j = 0
             if TabTracker[i] > 0:
                 file.write('Material Trial ' + str(TabTracker[i]) + '\n\n')
                 file.write('The detected Channels, Counts and respectful Thickness approximation were:'
@@ -1589,14 +1563,12 @@ class Skeleton:
     def __init__(self):
 
         ############# A Janela Mae ##############
-
         self.main = tk.Tk()
         self.main.title('ARC_TF')
         self.main.state('zoomed')
         self.main.configure(background = 'dark grey')
 
         ############## A barra de Ferramentas e opcoes #################
-    
         self.menu = tk.Menu(self.main)
         self.main.config(menu = self.menu)
 
@@ -1867,7 +1839,6 @@ class Tabs:
         self.notebook.add(self.PlusFrame, text = '+')
         
         ############# Frames onde irao ser inseridos os resultados finais e scrollbars
-
         self.Calib_Result = tk.Frame(self.CRFrame, borderwidth = 5, relief = 'ridge')
         self.Calib_Result.grid(row = 0, column = 0, pady = 10, padx = 30, sticky = 'nw', rowspan = 2)
         self.Calib_Result.columnconfigure(0, weight = 3)
@@ -1924,7 +1895,6 @@ class Tabs:
     def AnalysisTab(self, choice):
 
         ### Configuracao de geometria e Frames comuns a Calib e Material Tabs  ####
-        
         TabList[Notebook.value][0].columnconfigure(0, weight = 4)
         TabList[Notebook.value][0].columnconfigure(1, weight = 1)
         TabList[Notebook.value][0].rowconfigure(0, weight = 1)
@@ -2084,7 +2054,7 @@ class Tabs:
             tk.Label(self.SourceFrame, text = 'Choose the Calibration Regression \n'+ 
                      'Make sure the Peaks in the Calibration ' + 
                      'match the Peaks found for this trial').grid(row = 2, columnspan = 2, pady = 5)
-            tk.Button(self.SourceFrame, text = 'Calibration Trial', 
+            tk.Button(self.SourceFrame, text = 'Select Calibration', 
                       command = Calib_Choice).grid(row = 3, column = 0)
             tk.Button(self.SourceFrame, text = 'Calculate Thickness', 
                       command = lambda: Final_Results(value)).grid(row = 3, column = 1)
@@ -2134,7 +2104,6 @@ class Tabs:
         index = len(Notebook.notebook.tabs()) - 1             
 
         if num == 1:
-
             Tabs.Counter_Calib -= 1
             Data = "Temp\Data" + str(Tabs.Counter_Calib) + ".txt"
             Analysis = "Temp\Analysis" + str(Tabs.Counter_Calib) + ".txt"
@@ -2155,7 +2124,6 @@ class Tabs:
                 ()
 
         elif num == 2:
-
             Tabs.Counter_Mat += 1
             Data = "Temp\Data" + str(Tabs.Counter_Mat) + ".txt"
             Analysis = "Temp\Analysis" + str(Tabs.Counter_Mat) + ".txt"
@@ -2176,12 +2144,10 @@ class Tabs:
                 ()
         
         elif num == 3:
-
             Notebook.notebook.select(index - 1)
             wng.warning.destroy()
 
         elif num == 4:
-
             if Notebook.notebook.select() == '.!notebook.!frame' or Notebook.notebook.select() == '.!notebook.!frame2':
                 wng.popup('Bad Tab Deletion')
                 tk.Label(wng.warning, text = '\n This Tab cannot be deleted.\nPlease delete Analysis Tabs').pack()
@@ -2189,7 +2155,6 @@ class Tabs:
                 tk.Button(wng.warning, text = 'Return', command = lambda: wng.warning.destroy()).pack()
 
             else:
-
                 Notebook.notebook.forget("current")
                 Notebook.notebook.select(index - 2)
 
@@ -2309,14 +2274,12 @@ for entry in Dir:
         materials_list.append(temp[0])
 
 ############ Variaveis Estruturais #############################
-
 wng = Warnings()
 window = Skeleton()
 Notebook = Tabs()
 Notebook.First_Tabs()
 
 ############## Tabs variaveis para serem criadas ###############
-
 TabList = []
 TabTracker = []
 

@@ -24,4 +24,4 @@ def Eloss(Energies, calibCent, filmCent, calibErr, filmErr, m, dm):
     print('dEloss = ', dEloss)
     print()
 
-    return Emin, Emax
+    return Emin, Emax, Eloss
