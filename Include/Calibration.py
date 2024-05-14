@@ -26,9 +26,9 @@ def Calib(E, Ch, dCh):
     sigma_m = (sinv/delta)**(0.5)#Calcula incerteza associada ao declive
     sigma_b = (sxx/delta)**(0.5) #Calcula incerteza associada à ordenada na origem   
 
-    print('E (MeV) = (', "{:.6f}".format(1/m), '+-',"{:.6f}".format(
-        sigma_m/m**2),') x Channel + (',"{:.6f}".format(b/m), '+-', "{:.6f}".format(
-            ((sigma_b/m)**2+(b*sigma_m/m**2)**2)**0.5), ')')
-    print()
+    #print('E (MeV) = (', "{:.6f}".format(1/m), '+-',"{:.6f}".format(
+    #    sigma_m/m**2),') x Channel + (',"{:.6f}".format(b/m), '+-', "{:.6f}".format(
+    #        ((sigma_b/m)**2+(b*sigma_m/m**2)**2)**0.5), ')')
+ 
  
     return 1/m, b/m, sigma_m/m**2, ((sigma_b/m)**2+(b*sigma_m/m**2)**2)**0.5

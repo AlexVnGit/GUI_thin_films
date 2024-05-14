@@ -45,14 +45,15 @@ def ClearWidget(Frame, parameter):
     num = Current_Tab()
 
     if Frame == 'Graphic':
+        ## Delete old plot and build new one
         for widget in TabList[num][1].GraphicFrame.winfo_children():
-            widget.destroy()         # Este 'for' destroi grafcos antigos e constoi novos
+            widget.destroy()
         TabList[num][1].GraphicFrame.grid_remove()
         widget = 0
         for widget in TabList[num][1].Extra_Frame.winfo_children():
             widget.destroy()
         TabList[num][1].Extra_Frame.grid_remove()
-
+    
     elif Frame == 'Algorithm':
         for widget in TabList[num][1].AlgFrame.winfo_children(): 
             widget.destroy() #Destroi a opcao de widgets anteriores dos algoritmos
@@ -244,17 +245,13 @@ def Precision(value):
     number = float(value)
 
     if abs(number) < 1:
-
         while abs(number) < 1:
             number = number * 10
             counter += 1
-
         counter = counter + 1
-
         return counter
     
     elif abs(number) > 1:
-
         counter = 0
         return counter
 
@@ -281,6 +278,9 @@ def Final_Results(tracker):
     elif tracker == 0:
         pass        
         
+    print('tracker = ', tracker)
+    print('len(TabTracker) = ', len(TabTracker))
+
     for i in range(0, len(TabTracker)):
         if (tracker < 0 or tracker == 0) and TabTracker[i] < 0:
             if os.path.isfile(TabList[i][4]) == True:
@@ -320,18 +320,22 @@ def Final_Results(tracker):
                 tk.Label(Notebook.Calib_Result2, 
                         text = '%.*f' %(int(Results[6]), float(Results[4]))).grid(
                             row = 4 * i + i + 3, column = 2)
+            else:
+                print('IDK')
+                    
                 
                 Notebook.calib_canvas.update_idletasks()    
                 Notebook.calib_canvas.config(scrollregion = Notebook.Calib_Result2.bbox())
                 Notebook.Calib_Result2.bind('<Configure>', 
                               lambda e: Notebook.calib_canvas.configure(
                                   scrollregion = Notebook.calib_canvas.bbox('all'), width = e.width)) 
-
+        print('TabTracker[i] = ', TabTracker[i])
         if (tracker > 0 or tracker == 0) and TabTracker[i] > 0:
             if os.path.isfile(TabList[i][4]) == True and os.path.isfile(TabList[i][3]) == True:
 
                 Results = File_Reader(TabList[i][4], '0', 'Yes', 'No')
-                Peaks = File_Reader(TabList[i][3], ',', 'No', 'No')
+                print('Results = ', Results)
+                Peaks = File_Reader(TabList[i][3], ',', 'Yes', 'No')
                 Peaks.sort()
 
                 units_list = ['nm', '\u03bcm',
@@ -351,12 +355,12 @@ def Final_Results(tracker):
                             str(TabTracker[i]) + ' - ' +
                             TabList[i][1].Mat.get()).grid(row = (4 + size) * i + i + j , columnspan = 2)
                         tk.Label(Notebook.Mat_Result2, 
-                                 text = 'Channel').grid(row = (4 + size) * i + i + j + 1, column = 0)
+                                 text = 'Peak Centroid').grid(row = (4 + size) * i + i + j + 1, column = 0)
                         tk.Label(Notebook.Mat_Result2, 
                                  text = 'Thickness').grid(row = (4 + size) * i + i + j + 1, column = 1)
                     
                     tk.Label(Notebook.Mat_Result2, 
-                             text = str(Peaks[j][0])).grid(row = (4 + size) * i + i + j + 2, 
+                             text = str("{:.1f}".format(Peaks[j][0]))).grid(row = (4 + size) * i + i + j + 2, 
                                                           column = 0)
                     tk.Label(Notebook.Mat_Result2, 
                              text = '%.*f' % (int(Results[-1]), Results[j]) + 
@@ -384,7 +388,10 @@ def Final_Results(tracker):
                 Notebook.Mat_Result2.bind('<Configure>', 
                               lambda e: Notebook.mat_canvas.configure(
                                   scrollregion = Notebook.mat_canvas.bbox('all'), width = e.width)) 
-                
+            else:
+                print('WDK')
+        else:
+            print('WTF')
 ###########################################################################################
 # Permite a escolha de regressoes lineares por parte do utilizador
 ###########################################################################################
@@ -632,7 +639,21 @@ def ROI_Thick_Calculation():
     material_data = File_Reader(Material_choice, '|', 'Yes', 'No')
 
     ## Calculate thickness from energy loss
+    ## for each peak
     thickPeak = Thickness(energies, Emin, Emax, material_data)
+    ## the mean of all peaks
+    meanThick = np.mean([thick for thick in thickPeak])
+    ## Calculate mean thickness std deviation
+    stdDevThick = np.std(thickPeak)
+
+    ## Write results to file
+    result_file = open(TabList[num][4], 'w')
+    for i in range(0, len(thickPeak)): 
+        result_file.write(str("{:.0f}".format(thickPeak[i]))+'\n')
+    result_file.write(str(meanThick) + '\n')
+    result_file.write(str(stdDevThick) + '\n')
+    result_file.write(str(0))
+    result_file.close()
 
     ## Display results in the frame
     ## header
@@ -653,6 +674,18 @@ def ROI_Thick_Calculation():
         tk.Label(TabList[num][1].ThicknessFrame, text = ' ').grid(row = 0, column = 5) #spacer
         tk.Label(TabList[num][1].ThicknessFrame, text = '%.0f' % (thickPeak[k]) ).grid(row = k + 1, column = 6)
  
+    tk.Label(TabList[num][1].ThicknessFrame, 
+             text = 'Average Thickness (' + units_list[index] + ')').grid(row = k + 2, column = 0)
+    tk.Label(TabList[num][1].ThicknessFrame, 
+             text = 'Uncertainty (' + units_list[index] + ')').grid(row = k + 2, column = 4)
+    tk.Label(TabList[num][1].ThicknessFrame, 
+             text = "{:.0f}".format(meanThick)).grid(row = k + 3, column = 0)
+    tk.Label(TabList[num][1].ThicknessFrame, 
+             text = "{:.0f}".format(stdDevThick)).grid(row = k + 3, column = 4)
+    tk.Button(TabList[num][1].ThicknessFrame, 
+              command = lambda: ClearWidget('Thickness', 1),
+              text = 'Reset Results').grid(row = k + 4, columnspan = 2)
+    
     return
 
 #########################################################################################
@@ -1168,6 +1201,14 @@ def DataUploader():
         if value != 0:
             TabList[num][5].threshold(value)
 
+    ## Renames the tab with the filename
+    try:
+        Tabs.RenameTab(filename.split('/')[-1])
+    except:
+        ()
+
+    return
+
 ##############################################################################
 # Esta funcao gere o evento especifico de adicionar tabs, futuramente
 # ira ter uma seccao especifica para esconder tabs e recuperar a tab
@@ -1504,10 +1545,10 @@ def Save_Results():
             if TabTracker[i] < 0:
                 file.write('Calibration Trial ' + str(-TabTracker[i]) + '\n\n')
                 file.write('The detected Peaks and Counts were: \n \n')
-                Peaks = File_Reader(TabList[i][3], ',', 'No', 'No')
+                Peaks = File_Reader(TabList[i][3], ',', 'Yes', 'No')
 
                 for j in range(0, len(Peaks)):
-                    file.write('Channel: ' + str(Peaks[j][0]) + '\tCounts: ' + str(Peaks[j][1]) + '\n')
+                    file.write('Channel: ' + str("{:.1f}".format(Peaks[j][0])) + '\tCounts: ' + str("{:.1f}".format(Peaks[j][1])) + '\n')
 
                 file.write('\nThe Radiation source used for this trial was: ' + 
                            TabList[i][1].Source.get() + '\n\n')
@@ -1526,7 +1567,7 @@ def Save_Results():
                 file.write('Material Trial ' + str(TabTracker[i]) + '\n\n')
                 file.write('The detected Channels, Counts and respectful Thickness approximation were:'
                             + '\n\n')
-                Peaks = File_Reader(TabList[i][3], ',', 'No', 'No')
+                Peaks = File_Reader(TabList[i][3], ',', 'Yes', 'No')
                 Peaks.sort()
                 thickness = File_Reader(TabList[i][4], '0', 'String', 'No')
 
@@ -1539,7 +1580,7 @@ def Save_Results():
                 index = units_values.index(TabList[i][1].units.get())
 
                 for j in range(0, len(Peaks)):
-                    file.write('Channel: ' + str(Peaks[j][0]) + '\tCounts: ' + str(Peaks[j][1]) + 
+                    file.write('Channel: ' + str("{:.1f}".format(Peaks[j][0])) + '\tCounts: ' + str("{:.1f}".format(Peaks[j][1])) + 
                                '\tThickness: ' + '%.*f' % (int(thickness[-1]), float(thickness[j])) + 
                                ' ' + units_list[index] + '\n')
 
@@ -2171,6 +2212,15 @@ class Tabs:
                 TabTracker.pop(value)
                 ClearWidget('Final', 0)
                 Final_Results(0)
+
+    def RenameTab(name):
+
+        tab_num = Current_Tab()
+        Notebook.notebook.tab(tab_num+1, text = str(name))
+
+        return
+
+
        
 ###########################################################################
 # Esta classe recebe os dados dos ficheiros externos

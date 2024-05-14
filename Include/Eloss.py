@@ -20,8 +20,4 @@ def Eloss(Energies, calibCent, filmCent, calibErr, filmErr, m, dm):
         Emin.append(emin)
         Emax.append(emax)
 
-    print('Eloss = ', Eloss)
-    print('dEloss = ', dEloss)
-    print()
-
     return Emin, Emax, Eloss
