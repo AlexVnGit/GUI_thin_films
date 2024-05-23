@@ -278,9 +278,6 @@ def Final_Results(tracker):
     elif tracker == 0:
         pass        
         
-    print('tracker = ', tracker)
-    print('len(TabTracker) = ', len(TabTracker))
-
     for i in range(0, len(TabTracker)):
         if (tracker < 0 or tracker == 0) and TabTracker[i] < 0:
             if os.path.isfile(TabList[i][4]) == True:
@@ -320,21 +317,17 @@ def Final_Results(tracker):
                 tk.Label(Notebook.Calib_Result2, 
                         text = '%.*f' %(int(Results[6]), float(Results[4]))).grid(
                             row = 4 * i + i + 3, column = 2)
-            else:
-                print('IDK')
-                    
-                
+            else:                    
                 Notebook.calib_canvas.update_idletasks()    
                 Notebook.calib_canvas.config(scrollregion = Notebook.Calib_Result2.bbox())
                 Notebook.Calib_Result2.bind('<Configure>', 
                               lambda e: Notebook.calib_canvas.configure(
                                   scrollregion = Notebook.calib_canvas.bbox('all'), width = e.width)) 
-        print('TabTracker[i] = ', TabTracker[i])
+
         if (tracker > 0 or tracker == 0) and TabTracker[i] > 0:
             if os.path.isfile(TabList[i][4]) == True and os.path.isfile(TabList[i][3]) == True:
 
                 Results = File_Reader(TabList[i][4], '0', 'Yes', 'No')
-                print('Results = ', Results)
                 Peaks = File_Reader(TabList[i][3], ',', 'Yes', 'No')
                 Peaks.sort()
 
@@ -599,8 +592,6 @@ def ROI_Thick_Calculation():
     units_values = [10.0**9, 10.0**6, 0.0, -1.0]
     index = units_values.index(TabList[num][1].units.get())
     calibration = TabList[num][1].Regression_List[0].get() ## vamos selecionar apenas uma calibração
-
-    print('Calibration = ', calibration)
     
     ## Get the selected material and stop. pow.
     Material_choice = TabList[num][1].Mat.get() # Determina qual o ficheiro do material a ler
@@ -673,7 +664,7 @@ def ROI_Thick_Calculation():
         tk.Label(TabList[num][1].ThicknessFrame, text = '%.0f' % (eloss[k]) ).grid(row = k + 1, column = 4)
         tk.Label(TabList[num][1].ThicknessFrame, text = ' ').grid(row = 0, column = 5) #spacer
         tk.Label(TabList[num][1].ThicknessFrame, text = '%.0f' % (thickPeak[k]) ).grid(row = k + 1, column = 6)
- 
+    ## thickness final result
     tk.Label(TabList[num][1].ThicknessFrame, 
              text = 'Average Thickness (' + units_list[index] + ')').grid(row = k + 2, column = 0)
     tk.Label(TabList[num][1].ThicknessFrame, 
@@ -1130,7 +1121,6 @@ def ROI_Select_Alg():
                 results.write(str(cents[i]) + ',' + str(errs[i]) + ',' + str(sigmas[i]) + '\n')
 
     ROIResultManager()
-    print('Muito Bom!')
     return
   
 ###############################################################################

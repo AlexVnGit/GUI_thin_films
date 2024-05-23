@@ -1,5 +1,3 @@
-#coding:utf8
-
 from matplotlib.pylab import*
 
 def Calib(E, Ch, dCh):
@@ -29,6 +27,5 @@ def Calib(E, Ch, dCh):
     #print('E (MeV) = (', "{:.6f}".format(1/m), '+-',"{:.6f}".format(
     #    sigma_m/m**2),') x Channel + (',"{:.6f}".format(b/m), '+-', "{:.6f}".format(
     #        ((sigma_b/m)**2+(b*sigma_m/m**2)**2)**0.5), ')')
- 
  
     return 1/m, b/m, sigma_m/m**2, ((sigma_b/m)**2+(b*sigma_m/m**2)**2)**0.5
