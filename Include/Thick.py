@@ -15,7 +15,6 @@ def Thickness(Energies, Emin, Emax, material):
 
     ## Loop over peaks
     for p in range(len(Emax)):
-
         thick_max = 0
         thick_min = 0
         thick_mean = 0
@@ -25,13 +24,13 @@ def Thickness(Energies, Emin, Emax, material):
 
             if energies[i] >= Emin[p] and energies[i] <= Energies[p]:
                 thick_min += 0.001/stopPow[i]
-            
+
             if energies[i] >= (Emax[p]+Emin[p])/2 and energies[i] <= Energies[p]:
                 thick_mean += 0.001/stopPow[i]
 
         Thick_max.append(thick_max)
         Thick_min.append(thick_min)
-        Thick_peak.append(thick_mean)
+        Thick_peak.append(thick_mean*1e7) ## nm
 
     thick_min = mean(Thick_max)
     thick_max = mean(Thick_min)
